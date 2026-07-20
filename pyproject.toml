@@ -15,7 +15,8 @@ dependencies = []
 [project.scripts]
 atelier-json = "atelier_json_service.cli:main"
 atelier-orders-readonly = "atelier_json_service.poller:main"
+atelier-fulfillment-worker = "atelier_json_service.worker:main"
+atelier-service-provisioner = "atelier_json_service.provisioner:main"
 
 [tool.setuptools]
 packages = ["atelier_json_service"]
-

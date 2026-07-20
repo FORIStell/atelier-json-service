@@ -6,3 +6,6 @@ dist/
 build/
 *.egg-info/
 .env
+.atelier-json-state.json
+.atelier-json-state.json.*
+*.lock

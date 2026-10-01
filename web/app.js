@@ -45,6 +45,7 @@ $('menuBtn').addEventListener('click', () => { $('menu').hidden = false; });
 document.querySelectorAll('[data-menu]').forEach((b) => b.addEventListener('click', () => {
   const m = b.dataset.menu;
   if (m === 'angle') { degrees = !degrees; store.set('degrees', degrees); syncAngle(); toast(`Angles in ${degrees ? 'degrees' : 'radians'}`); return; }
+  if (m === 'accurate') { const v = !store.get('accurate', null); store.set('accurate', v); syncAccurate(); toast(v ? 'Accurate reader on (downloads once when you next read a photo)' : 'Using the fast reader'); return; }
   $('menu').hidden = true;
   if (m === 'help') $('help').hidden = false;
   else if (m !== 'close') openSheet(m);
@@ -155,8 +156,9 @@ $('shutter').addEventListener('click', async () => {
     const model = await getModel();
     const { g, w, h } = grayFromImage(src, crop, 1400);
     const out = recognizeMask(binarize(g, w, h), w, h, model);
+    const lines = await readAccurately(g, w, h, out);
     busy(false);
-    useRecognized(out.lines, 'photo');
+    useRecognized(lines, 'photo');
   } catch (e) { console.error(e); busy(false); toast('Could not read that: ' + e.message); }
 });
 
@@ -166,6 +168,71 @@ function getModel() {
   if (!modelPromise) modelPromise = SymbolModel.load(new URL('model/', location.href)).catch((e) => { modelPromise = null; throw e; });
   return modelPromise;
 }
+// ---- accurate reader (Pix2Text-MFR, ~43 MB one-time download), combined with the tiny model
+let readerPromise = null;
+function askAccurate() {
+  return new Promise((resolve) => {
+    const m = $('help'), card = m.querySelector('.modal-card'), old = card.innerHTML;
+    card.innerHTML = `<h2>Use the accurate reader?</h2>
+      <p>It reads handwriting about twice as well, but needs a one-time download of about 43&nbsp;MB (best on Wi-Fi). After that it works offline.</p>
+      <button class="btn primary" data-y>Download (43 MB)</button><p></p><button class="btn" data-n>Use the fast reader</button>`;
+    const done = (v) => { m.hidden = true; card.innerHTML = old; rebindHelp(); resolve(v); };
+    card.querySelector('[data-y]').addEventListener('click', () => done(true));
+    card.querySelector('[data-n]').addEventListener('click', () => done(false));
+    m.hidden = false;
+  });
+}
+async function getReader() {
+  let pref = store.get('accurate', null);
+  if (pref === null) { busy(false); pref = await askAccurate(); store.set('accurate', pref); syncAccurate(); }
+  if (!pref) return null;
+  if (!readerPromise) {
+    const { FormulaReader } = await import('./src/ocr/mfr.js');
+    readerPromise = FormulaReader.load(new URL('model/mfr/', location.href), (p, partial) => busy(true, `Downloading the accurate reader… ${Math.round(100 * p)}%`))
+      .catch((e) => { readerPromise = null; throw e; });
+  }
+  busy(true, 'Loading the accurate reader…');
+  return readerPromise;
+}
+// crop each line from the grey image and let the accurate reader pick the best reading
+async function readAccurately(g, w, h, out) {
+  if (!out.lines.length) return out.lines;
+  let reader;
+  try { reader = await getReader(); } catch (e) { console.warn(e); toast('Accurate reader unavailable, using the fast one'); return out.lines; }
+  if (!reader) return out.lines;
+  let mean = 0; for (let i = 0; i < g.length; i += 7) mean += g[i]; mean /= g.length / 7;
+  // lines that sit close together (e.g. the top and bottom of a fraction) are read as one block
+  const blocks = [];
+  out.boxes.forEach((b, k) => {
+    const last = blocks[blocks.length - 1];
+    const gap = last ? b.y0 - last.box.y1 : Infinity;
+    if (last && gap < 0.6 * Math.min(b.y1 - b.y0, last.box.y1 - last.box.y0)) {
+      last.box = { x0: Math.min(last.box.x0, b.x0), y0: last.box.y0, x1: Math.max(last.box.x1, b.x1), y1: Math.max(last.box.y1, b.y1) };
+      last.ks.push(k);
+    } else blocks.push({ box: { ...b }, ks: [k] });
+  });
+  const lines = [];
+  for (let n = 0; n < blocks.length; n++) {
+    busy(true, blocks.length > 1 ? `Reading line ${n + 1} of ${blocks.length}…` : 'Reading the problem…');
+    await nextFrame();
+    const k = blocks[n].ks.length === 1 ? blocks[n].ks[0] : -1;
+    const b = blocks[n].box, cw = b.x1 - b.x0, ch = b.y1 - b.y0;
+    const crop = new Float32Array(cw * ch);
+    for (let y = 0; y < ch; y++) for (let x = 0; x < cw; x++) { const v = g[(y + b.y0) * w + x + b.x0]; crop[y * cw + x] = mean < 0.45 ? 1 - v : v; }
+    const tinyText = k >= 0 ? out.lines[k] : null;
+    let tinyTex = null;
+    try { if (tinyText) tinyTex = rawTex(parse(tinyText)).replace(/\\left|\\right/g, ''); } catch { /* tiny reading not valid */ }
+    try {
+      const cands = await reader.read(crop, cw, ch, tinyTex);
+      const ok = cands.find((c) => { try { const t = latexToText(c.latex); if (!t.trim() || /\(\s*\)/.test(t)) return false; parse(t); return true; } catch { return false; } });
+      const fallback = tinyText ?? blocks[n].ks.map((i) => out.lines[i]).join(', ');
+      lines.push(ok ? latexToText(ok.latex) : fallback);
+    } catch (e) { console.warn(e); lines.push(tinyText ?? out.lines[blocks[n].ks[0]]); }
+  }
+  return lines;
+}
+function syncAccurate() { const el = $('accurateLabel'); if (el) el.textContent = store.get('accurate', null) ? 'On' : 'Off'; }
+
 function useRecognized(lines, source) {
   if (!lines.length) { toast('I could not find any math. Try again closer, with more light.'); return; }
   if (lines.length > 1 && lines.every((l) => l.includes('='))) { solveText(lines.join(', '), { source }); return; }
@@ -464,8 +531,9 @@ $('padRead').addEventListener('click', async () => {
     const { g, w, h } = grayFromImage(pad, null, 1000);
     const out = recognizeMask(binarize(g, w, h, { clean: true }), w, h, model);
     window.__lastOCR = out;
+    const lines = await readAccurately(g, w, h, out);
     busy(false);
-    useRecognized(out.lines, 'write');
+    useRecognized(lines, 'write');
   } catch (e) { console.error(e); busy(false); toast('Could not read that: ' + e.message); }
 });
 window.addEventListener('resize', () => { if (!$('write').hidden) sizePad(); });
@@ -545,6 +613,7 @@ function niceStep(raw) { const p = Math.pow(10, Math.floor(Math.log10(raw))); co
 
 // ================================================================ start
 syncAngle();
+syncAccurate();
 renderPad('basic');
 initMathField();
 startCamera();

@@ -37,11 +37,18 @@ export function recognizeMask(mask, w, h, model) {
   items = items.flatMap((it) => splitTouching(it, ctx, 0));
   items = findStructures(items, ctx);
   const lines = splitLines(items, medH);
-  return {
-    lines: lines.map((ln) => postProcess(lineTokens(ln, ctx))).filter((s) => s.trim()),
-    items: flatItems(items),
-  };
+  const texts = [], boxes = [];
+  for (const ln of lines) {
+    const t = postProcess(lineTokens(ln, ctx));
+    if (!t.trim()) continue;
+    texts.push(t);
+    const b = bbox(ln.flatMap((it) => it.parts));
+    const pad = Math.round(0.35 * medH);
+    boxes.push({ x0: Math.max(0, b.x0 - pad), y0: Math.max(0, b.y0 - pad), x1: Math.min(w, b.x1 + pad), y1: Math.min(h, b.y1 + pad) });
+  }
+  return { lines: texts, boxes, items: flatItems(items) };
 }
+
 
 const isFlat = (c, medH) => c.h < 0.4 * c.w && c.h < 0.45 * medH;
 const isBarLike = (c, medH) => c.h < 0.7 * c.w && c.h < 0.45 * medH;

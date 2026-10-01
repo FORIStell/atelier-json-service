@@ -66,15 +66,22 @@ training/         Python scripts that build the dataset and train the model
 tests/            engine tests (npm test)
 ```
 
-### The handwriting model
+### Reading handwriting and photos
 
-The symbol classifier knows 56 symbols: digits, `+ − × ÷ = ( ) [ ] / < > ≤ ≥ ! % | √ ∫ π θ ∞` and lowercase letters.
-It was trained on ~190k images from several sources so it understands many handwriting styles and printed text:
+Two readers work together:
 
-* [MNIST](https://huggingface.co/datasets/ylecun/mnist) and [EMNIST](https://huggingface.co/datasets/Royc30ne/emnist-byclass) handwritten digits and letters
-* [HASYv2](https://zenodo.org/records/259444) handwritten math symbols
-* symbols cut out of the [CROHME](https://huggingface.co/datasets/Neeze/CROHME-full) handwritten math expressions
-* printed symbols rendered from ~40 fonts
+1. **Fast reader** (always available, 0.8 MB): our own tiny CNN symbol classifier (408k parameters, plain JavaScript) plus layout rules for fractions, roots and exponents. It knows 56 symbols and was trained on ~190k images (MNIST, EMNIST, HASYv2, symbols cut out of CROHME, printed fonts).
+2. **Accurate reader** (optional one-time ~43 MB download, then offline): [Pix2Text-MFR 1.5](https://huggingface.co/breezedeus/pix2text-mfr-1.5) (MIT), shrunk to 8-bit, run with onnxruntime-web. It searches several readings limited to school-math symbols (rare symbols like π, α, cos are penalised), also scores the fast reader's reading, and keeps the best one our math engine can understand.
+
+Measured on real handwritten school-level problems that were never used for training ("exactly right" = the whole problem read correctly):
+
+| Test set | Fast reader | Pix2Text alone | Combined (used in the app) |
+|---|---|---|---|
+| CROHME 2019, 200 problems (handwriting drawn on tablets) | 37% | 50% | **70%** |
+| CROHME 2023, 200 problems (handwriting scanned on lined paper) | 17% | 34% | **52%** |
+| Printed problems (synthetic photos) | 100% | – | – |
+
+Messy or unusual handwriting is still hard; always check the problem shown on the solution page and tap **Edit** to fix it.
 
 To retrain:
 
@@ -85,6 +92,10 @@ python extract_crohme.py $MATH_DATA/crohme_sym.npz $MATH_DATA/crohme/*.parquet
 python build_dataset.py
 python train.py 14          # writes web/model/symbols.{json,bin}
 python make_eval.py $MATH_DATA/eval && node eval_ocr.mjs $MATH_DATA/eval
+# combined reader evaluation (needs onnxruntime, tokenizers and the Pix2Text-MFR files in $MFR)
+python make_school_eval23.py $MATH_DATA/paper && node dump_tiny.mjs $MATH_DATA/paper $MATH_DATA/paper/tiny.json
+python hybrid_eval.py $MATH_DATA/paper $MFR $MATH_DATA/paper/tiny.json cands.json --pen=5 --bonus=0.3 --aspect=4
+node pick_valid.mjs cands.json best.json && node eval_compare.mjs $MATH_DATA/paper best.json
 ```
 
 ## Limits
@@ -93,4 +104,4 @@ python make_eval.py $MATH_DATA/eval && node eval_ocr.mjs $MATH_DATA/eval
 * Very messy handwriting, matrices, and multi-line work (e.g. long division layouts) are not recognized from photos; type them instead.
 * Some integrals and equations have no step-by-step method here; MathBot then says so or gives a numeric answer.
 
-Third-party (MIT licensed, bundled so the app works offline): [KaTeX](https://katex.org) in `web/vendor/katex` for showing math, and [MathLive](https://mathlive.io) in `web/vendor/mathlive` for the editable math input box.
+Third-party (MIT licensed, bundled so the app works offline): [KaTeX](https://katex.org) in `web/vendor/katex` for showing math, [MathLive](https://mathlive.io) in `web/vendor/mathlive` for the editable math input box, [onnxruntime-web](https://github.com/microsoft/onnxruntime) in `web/vendor/ort` and [Pix2Text-MFR](https://huggingface.co/breezedeus/pix2text-mfr-1.5) in `web/model/mfr` for the accurate reader.

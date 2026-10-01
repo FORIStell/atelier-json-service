@@ -48,14 +48,15 @@ const expr = $('expr');
 const PADS = {
   basic: [
     ['7'], ['8'], ['9'], ['÷', '/', 'op'], ['(', '(', 'op'], [')', ')', 'op'],
-    ['4'], ['5'], ['6'], ['×', '*', 'op'], ['x²', '^2', 'op'], ['xʸ', '^', 'op'],
-    ['1'], ['2'], ['3'], ['−', '-', 'op'], ['√', 'sqrt(', 'op'], ['%', '%', 'op'],
+    ['4'], ['5'], ['6'], ['×', '*', 'op'], ['x²', '^2', 'op'], ['^', '^', 'op'],
+    ['1'], ['2'], ['3'], ['−', '-', 'op'], ['√', 'sqrt(', 'op'], ['ⁿ√', 'ROOT', 'op'],
     ['0'], ['.'], ['x', 'x', 'op'], ['+', '+', 'op'], ['=', '=', 'op'], ['⌫', 'BACK', 'op'],
+    ['%', '%', 'op'], ['π', 'pi', 'op'], ['xⁿ', 'POW', 'op'], ['←', 'LEFT', 'op'], ['→', 'RIGHT', 'op'], ['C', 'CLEAR', 'op'],
   ],
   alg: [
     ['x', 'x', 'op'], ['y', 'y', 'op'], ['z', 'z', 'op'], ['a', 'a'], ['b', 'b'], ['n', 'n'],
     ['<', '<', 'op'], ['>', '>', 'op'], ['≤', '<=', 'op'], ['≥', '>=', 'op'], ['|x|', 'abs(', 'op'], [',', ', ', 'op'],
-    ['π', 'pi', 'op'], ['e', 'e', 'op'], ['ⁿ√', 'root(', 'op'], ['!', '!', 'op'], ['°', '°', 'op'], ['⌫', 'BACK', 'op'],
+    ['π', 'pi', 'op'], ['e', 'e', 'op'], ['ⁿ√', 'ROOT', 'op'], ['!', '!', 'op'], ['°', '°', 'op'], ['⌫', 'BACK', 'op'],
     ['factor', 'factor '], ['expand', 'expand '], ['simplify', 'simplify '], ['solve', 'solve '], ['[ ]', '[', 'op'], [']', ']', 'op'],
     ['det', 'det [[1,2],[3,4]]', 'wide'], ['inverse', 'inverse [[1,2],[3,4]]', 'wide'], ['←', 'LEFT', 'op'], ['→', 'RIGHT', 'op'],
   ],
@@ -93,9 +94,23 @@ function press(ins) {
   const v = expr.value;
   if (ins === 'BACK') { if (s === e && s > 0) { expr.value = v.slice(0, s - 1) + v.slice(e); setCaret(s - 1); } else { expr.value = v.slice(0, s) + v.slice(e); setCaret(s); } }
   else if (ins === 'CLEAR') { expr.value = ''; setCaret(0); }
+  else if (ins === 'ROOT') {
+    // any root: root(n, x). The "n" is selected so the next key replaces it.
+    expr.value = v.slice(0, s) + 'root(n, ' + v.slice(s, e) + ')' + v.slice(e);
+    expr.setSelectionRange(s + 5, s + 6);
+    $('rootHint').textContent = 'Type the root number (n), then → and the number under the root. Example: root(5, 32) = 2';
+    updatePreview(); return;
+  } else if (ins === 'POW') {
+    // any power: (base)^(n) with the n selected
+    expr.value = v.slice(0, s) + '^(n)' + v.slice(e);
+    expr.setSelectionRange(s + 2, s + 3);
+    $('rootHint').textContent = 'Type the power. Example: 2^(10) = 1024, 16^(3/4) = 8';
+    updatePreview(); return;
+  }
   else if (ins === 'LEFT') setCaret(Math.max(0, s - 1));
   else if (ins === 'RIGHT') setCaret(Math.min(v.length, e + 1));
   else { expr.value = v.slice(0, s) + ins + v.slice(e); setCaret(s + ins.length); }
+  $('rootHint').textContent = '';
   updatePreview();
 }
 function setCaret(p) { expr.setSelectionRange(p, p); }
@@ -119,7 +134,7 @@ expr.addEventListener('input', updatePreview);
 expr.addEventListener('keydown', (e) => { if (e.key === 'Enter') { e.preventDefault(); solve(); } });
 $('solveBtn').addEventListener('click', () => solve());
 
-const EXAMPLES = ['2+3*4^2', '1/2 + 3/4', '3(x+2) - 4 = 2x + 7', 'x^2 - 5x + 6 = 0', '2x^2 + 3x - 4 = 0', 'x^3 - 6x^2 + 11x - 6 = 0',
+const EXAMPLES = ['2+3*4^2', 'root(5, 32)', '16^(3/4)', 'x^5 = 32', '1/2 + 3/4', '3(x+2) - 4 = 2x + 7', 'x^2 - 5x + 6 = 0', '2x^2 + 3x - 4 = 0', 'x^3 - 6x^2 + 11x - 6 = 0',
   '2x + 3y = 12, x - y = -1', 'sqrt(x+3) = x - 3', '|2x - 1| = 5', '2^(x+1) = 16', 'log(x) + log(x-3) = 1', '2sin(x) - 1 = 0',
   'x^2 - 4 > 0', 'factor 6x^2 + 11x - 10', 'expand (x+2)^3', 'simplify (x^2-9)/(x+3)', 'd/dx x^3 sin(x)', '∫ x e^x dx',
   'integrate from 0 to 2 of x^2', 'lim x->2 (x^2-4)/(x-2)', 'y = x^2 - 4x + 3', '15% of 80', 'prime factorization of 360', 'mean of 2, 4, 4, 5, 7', 'det [[2,0,1],[1,3,2],[1,1,1]]', 'inverse [[4,7],[2,6]]', 'area of a circle with radius 5', 'hypotenuse 3 and 4'];

@@ -1,32 +1,32 @@
 :root {
-  --bg: #f4f5fb;
+  --bg: #f6f4f2;
   --card: #ffffff;
-  --text: #1c1d2b;
-  --muted: #6b6f85;
-  --line: #e3e5f0;
-  --accent: #4f46e5;
-  --accent-2: #7c3aed;
-  --accent-soft: #eef0ff;
+  --text: #1d1a1b;
+  --muted: #6f6668;
+  --line: #e6e0dd;
+  --accent: #b5162b;
+  --accent-2: #7d0f1e;
+  --accent-soft: #fbeaec;
   --good: #0f9d58;
   --bad: #d93025;
-  --key: #f0f1f8;
-  --key-op: #e6e8ff;
-  --shadow: 0 1px 2px rgba(20, 20, 50, .06), 0 6px 20px rgba(20, 20, 50, .06);
+  --key: #efebe9;
+  --key-op: #f6dfe2;
+  --shadow: 0 1px 2px rgba(40, 20, 20, .08);
   --radius: 16px;
   color-scheme: light;
 }
 @media (prefers-color-scheme: dark) {
   :root {
-    --bg: #0f1020;
-    --card: #191a2e;
-    --text: #eceefe;
-    --muted: #9da1bf;
-    --line: #2b2d47;
-    --accent: #8b85ff;
-    --accent-2: #b28dff;
-    --accent-soft: #24264a;
-    --key: #23253d;
-    --key-op: #2c2f56;
+    --bg: #141213;
+    --card: #1e1b1c;
+    --text: #f3eeee;
+    --muted: #a99fa1;
+    --line: #342e30;
+    --accent: #ff4d63;
+    --accent-2: #ff8a98;
+    --accent-soft: #3a1b21;
+    --key: #2a2526;
+    --key-op: #43222a;
     --shadow: 0 1px 2px rgba(0, 0, 0, .3);
     color-scheme: dark;
   }
@@ -48,11 +48,11 @@ h2 { font-size: 1.05rem; margin: 0 0 .6rem; }
   position: sticky; top: 0; z-index: 5;
   display: flex; align-items: center; justify-content: space-between;
   padding: calc(env(safe-area-inset-top) + 10px) 16px 10px;
-  background: linear-gradient(120deg, var(--accent), var(--accent-2));
+  background: var(--accent);
   color: #fff;
 }
 .brand { display: flex; align-items: center; gap: 10px; font-weight: 700; font-size: 1.2rem; }
-.brand img { border-radius: 8px; background: #fff2; }
+.brand img { border-radius: 8px; }
 .chip { border: 1px solid #fff6; background: #fff2; color: #fff; border-radius: 999px; padding: 4px 12px; font-weight: 600; cursor: pointer; }
 
 .tabs {
@@ -65,7 +65,8 @@ h2 { font-size: 1.05rem; margin: 0 0 .6rem; }
   display: flex; flex-direction: column; align-items: center; font-size: .78rem; font-weight: 600;
   border-bottom: 3px solid transparent;
 }
-.tabs .ti { font-size: 1.25rem; line-height: 1.2; }
+.tabs .ti { width: 22px; height: 22px; margin-bottom: 2px; }
+.tabs .ti svg { width: 100%; height: 100%; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
 .tabs button[aria-selected="true"] { color: var(--accent); border-bottom-color: var(--accent); }
 
 main { max-width: 760px; margin: 0 auto; padding: 12px 16px 24px; }
@@ -124,11 +125,11 @@ main { max-width: 760px; margin: 0 auto; padding: 12px 16px 24px; }
 .chips { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
 .chips button { border: 1px solid var(--line); background: var(--bg); border-radius: 999px; padding: 5px 11px; cursor: pointer; font-size: .85rem; font-family: ui-monospace, Menlo, monospace; }
 
-.result .answer-card { border: 2px solid var(--accent); }
+.result .answer-card { border-left: 5px solid var(--accent); }
 .result-kind { color: var(--accent); font-weight: 700; text-transform: uppercase; font-size: .78rem; letter-spacing: .06em; }
 .problem { overflow-x: auto; padding: 6px 0 10px; font-size: 1.1rem; }
 .answer-label { color: var(--muted); font-size: .8rem; font-weight: 600; }
-.answer { overflow-x: auto; font-size: 1.35rem; padding: 6px 0 12px; color: var(--good); }
+.answer { overflow-x: auto; font-size: 1.35rem; padding: 6px 0 12px; color: var(--text); font-weight: 600; }
 .steps { list-style: none; padding: 0; margin: 0; counter-reset: s; }
 .steps li { counter-increment: s; position: relative; padding: 10px 0 10px 40px; border-top: 1px solid var(--line); }
 .steps li:first-child { border-top: 0; }
@@ -157,3 +158,5 @@ main { max-width: 760px; margin: 0 auto; padding: 12px 16px 24px; }
 .katex-display { margin: .3em 0; }
 .recog-lines { display: flex; flex-direction: column; gap: 6px; margin-top: 10px; }
 .recog-lines button { text-align: left; font-family: ui-monospace, Menlo, monospace; }
+
+.root-hint { font-size: .8rem; color: var(--muted); margin: -4px 0 8px; min-height: 1em; }

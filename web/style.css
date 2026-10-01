@@ -7,6 +7,7 @@
   --accent: #b5162b;
   --accent-2: #7d0f1e;
   --accent-soft: #fbeaec;
+  --bar: #b5162b;
   --good: #0f9d58;
   --bad: #d93025;
   --key: #efebe9;
@@ -25,6 +26,7 @@
     --accent: #ff4d63;
     --accent-2: #ff8a98;
     --accent-soft: #3a1b21;
+    --bar: #8a1124;
     --key: #2a2526;
     --key-op: #43222a;
     --shadow: 0 1px 2px rgba(0, 0, 0, .3);
@@ -48,7 +50,7 @@ h2 { font-size: 1.05rem; margin: 0 0 .6rem; }
   position: sticky; top: 0; z-index: 5;
   display: flex; align-items: center; justify-content: space-between;
   padding: calc(env(safe-area-inset-top) + 10px) 16px 10px;
-  background: var(--accent);
+  background: var(--bar);
   color: #fff;
 }
 .brand { display: flex; align-items: center; gap: 10px; font-weight: 700; font-size: 1.2rem; }

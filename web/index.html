@@ -21,6 +21,15 @@
 </head>
 <body>
 <div id="app">
+  <!-- Shown only when the file is opened by double-clicking (file://), where browsers block the app's code -->
+  <script>
+    if (location.protocol === 'file:') document.addEventListener('DOMContentLoaded', function () {
+      var d = document.createElement('div');
+      d.style.cssText = 'position:fixed;inset:0;z-index:99;background:#111;color:#fff;display:flex;flex-direction:column;justify-content:center;padding:28px;font:17px/1.5 system-ui,sans-serif';
+      d.innerHTML = '<h2 style="margin:0 0 10px">Open MathBot with run.py</h2><p>Browsers block the app when index.html is opened by double-clicking, so the buttons can\'t work.</p><p>In the project folder run <b>python run.py</b> (or double-click <b>run.py</b>). To use it on your phone too, run <b>python host_wifi.py</b>.</p>';
+      document.body.appendChild(d);
+    });
+  </script>
 
   <!-- ============ CAMERA HOME ============ -->
   <section id="home" class="home">

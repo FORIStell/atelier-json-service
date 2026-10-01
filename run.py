@@ -6,8 +6,9 @@
     python run.py --lan      # also reachable from your phone on the same Wi-Fi
 
 Needs only Python 3 (no installs). Press Ctrl+C to stop.
-Note: phones only allow the camera on https sites, so over --lan the
-calculator and drawing work but the camera needs the GitHub Pages link.
+Don't open web/index.html by double-clicking it: browsers block the app's
+code on file:// pages, so nothing would respond. Always use this script.
+To host it for other devices on your Wi-Fi, use host_wifi.py.
 """
 import argparse
 import http.server
@@ -15,6 +16,7 @@ import mimetypes
 import os
 import socket
 import socketserver
+import ssl
 import sys
 import threading
 import webbrowser
@@ -43,14 +45,44 @@ class Handler(http.server.SimpleHTTPRequestHandler):
 
 
 def lan_ip():
+    """This computer's address on the local network (e.g. 192.168.1.23)."""
     s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
     try:
-        s.connect(("8.8.8.8", 80))
+        s.connect(("10.255.255.255", 1))  # no data is sent
         return s.getsockname()[0]
     except OSError:
         return None
     finally:
         s.close()
+
+
+def make_server(host, port):
+    if not os.path.isfile(os.path.join(WEB_DIR, "index.html")):
+        sys.exit(f"Can't find the app in {WEB_DIR}. Keep this file in the project folder.")
+    socketserver.ThreadingTCPServer.allow_reuse_address = True
+    for p in range(port, port + 20):  # find a free port
+        try:
+            return socketserver.ThreadingTCPServer((host, p), Handler), p
+        except OSError:
+            continue
+    sys.exit("No free port found.")
+
+
+def serve(httpd, open_url=None, cert=None):
+    if cert:
+        ctx = ssl.SSLContext(ssl.PROTOCOL_TLS_SERVER)
+        ctx.load_cert_chain(*cert)
+        # handshake in the worker thread, so one slow or failed phone connection never blocks the others
+        httpd.socket = ctx.wrap_socket(httpd.socket, server_side=True, do_handshake_on_connect=False)
+    if open_url:
+        threading.Timer(0.8, lambda: webbrowser.open(open_url)).start()
+    print("Press Ctrl+C to stop.")
+    try:
+        httpd.serve_forever()
+    except KeyboardInterrupt:
+        print("\nStopped.")
+    finally:
+        httpd.server_close()
 
 
 def main():
@@ -60,34 +92,12 @@ def main():
     ap.add_argument("--no-browser", action="store_true", help="don't open the browser automatically")
     args = ap.parse_args()
 
-    if not os.path.isfile(os.path.join(WEB_DIR, "index.html")):
-        sys.exit(f"Can't find the app in {WEB_DIR}. Run this file from the project folder.")
-
-    host = "0.0.0.0" if args.lan else "127.0.0.1"
-    socketserver.TCPServer.allow_reuse_address = True
-    port = args.port
-    for _ in range(20):  # find a free port
-        try:
-            httpd = socketserver.ThreadingTCPServer((host, port), Handler)
-            break
-        except OSError:
-            port += 1
-    else:
-        sys.exit("No free port found.")
-
+    httpd, port = make_server("0.0.0.0" if args.lan else "127.0.0.1", args.port)
     url = f"http://localhost:{port}/"
     print(f"MathBot is running:  {url}")
     if args.lan and (ip := lan_ip()):
         print(f"On your phone (same Wi-Fi): http://{ip}:{port}/")
-    print("Press Ctrl+C to stop.")
-    if not args.no_browser:
-        threading.Timer(0.8, lambda: webbrowser.open(url)).start()
-    try:
-        httpd.serve_forever()
-    except KeyboardInterrupt:
-        print("\nStopped.")
-    finally:
-        httpd.server_close()
+    serve(httpd, None if args.no_browser else url)
 
 
 if __name__ == "__main__":

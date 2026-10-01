@@ -11,9 +11,6 @@ permissions:
   pages: write
   id-token: write
 
-concurrency:
-  group: pages
-  cancel-in-progress: true
 
 jobs:
   test:
@@ -28,6 +25,10 @@ jobs:
   deploy:
     if: github.event_name != 'pull_request'
     needs: test
+    # one deploy at a time; pull request test runs never cancel a deploy
+    concurrency:
+      group: pages-deploy
+      cancel-in-progress: false
     runs-on: ubuntu-latest
     environment:
       name: github-pages

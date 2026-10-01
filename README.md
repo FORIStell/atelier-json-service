@@ -39,7 +39,8 @@ Each answer comes with explanations of the rule used at every step (e.g. "Subtra
   Turn it on once in **Settings → Pages → Source: GitHub Actions**. The app will be at `https://<user>.github.io/<repo>/`.
 * **Install on iPhone:** open the link in Safari → Share → **Add to Home Screen**.
 * **Install on PC:** open the link in Chrome/Edge → install icon in the address bar.
-* **Run on your PC:** install [Python 3](https://www.python.org/downloads/), then in the project folder run `python run.py` (or double-click `run.py`). It opens http://localhost:8000 in your browser. Use `python run.py --lan` to also open it from your phone on the same Wi-Fi (camera needs the https link, everything else works).
+* **Run on your PC:** install [Python 3](https://www.python.org/downloads/), then in the project folder run `python run.py` (or double-click `run.py`). It opens http://localhost:8000. Don't double-click `web/index.html`: browsers block the app on file:// pages, so the buttons won't respond.
+* **Host it on your Wi-Fi:** run `python host_wifi.py` and open the address it prints on any phone/computer on the same Wi-Fi. It uses https so the phone camera works (the phone shows a one-time "not private" warning because the certificate is made by your own computer; tap through it). Needs `pip install cryptography` or the `openssl` command; otherwise it falls back to http, where everything except the live camera works. Allow Python through the firewall if asked.
 
 ## How it works
 

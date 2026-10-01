@@ -130,6 +130,10 @@ export function evalNum(x, env = {}) {
         fact: (n) => (Number.isInteger(n) && n >= 0 ? FACT(n) : gammaFn(n + 1)),
       };
       if (x.n === 'log') return Math.log(a[0]) / Math.log(a[1] ?? 10);
+      if (x.n === 'ncr' || x.n === 'npr') { let r = 1; for (let k = 0; k < a[1]; k++) r *= (a[0] - k) / (x.n === 'ncr' ? k + 1 : 1); return Math.round(r); }
+      if (x.n === 'coth') return 1 / Math.tanh(a[0]);
+      if (x.n === 'sech') return 1 / Math.cosh(a[0]);
+      if (x.n === 'csch') return 1 / Math.sinh(a[0]);
       if (x.n === 'max') return Math.max(...a);
       if (x.n === 'min') return Math.min(...a);
       if (m[x.n]) return m[x.n](a[0]);
@@ -398,6 +402,12 @@ function simpPow(b, e, opts = {}) {
     if (isQ(c) && c.sign() > 0 && !c.isOne() && rest) return simpMul([simpPow(num(c), e), simpPow(rest, e)], opts);
   }
   if (b.t === 'sym' && b.n === 'e' && e.t === 'fn' && e.n === 'ln') return e.a[0];
+  if (b.t === 'sym' && b.n === 'e' && !has(e) && has(e, 'i')) { // Euler: e^(i t) = cos t + i sin t
+    const t = simplify(subst(e, 'i', ONE));
+    if (equal(simplify({ t: 'mul', a: [t, sym('i')] }), e) && !has(t, 'i')) {
+      return simpAdd([simpFn('cos', [t], opts), simpMul([sym('i'), simpFn('sin', [t], opts)], opts)]);
+    }
+  }
   if (b.t === 'sym' && b.n === 'i' && isInt(e)) { // i^2 = -1
     const k = Number(((e.v.n % 4n) + 4n) % 4n);
     return [ONE, b, num(-1), { t: 'mul', a: [num(-1), b] }][k];
@@ -482,6 +492,14 @@ function simpFn(n, a, opts = {}) {
     }
     case 'fact':
       if (isInt(x) && x.v.sign() >= 0 && x.v.n <= 500n) { let r = 1n; for (let i = 2n; i <= x.v.n; i++) r *= i; return num(new Q(r)); }
+      break;
+    case 'ncr': case 'npr':
+      if (a.length === 2 && a.every(isInt) && a[0].v.sign() >= 0 && a[1].v.sign() >= 0 && a[1].v.cmp(a[0].v) <= 0) {
+        let r = 1n; const N = a[0].v.n, K = a[1].v.n;
+        for (let j = 0n; j < K; j++) r *= N - j;
+        let f = 1n; for (let j = 2n; j <= K; j++) f *= j;
+        return num(new Q(n === 'ncr' ? r / f : r));
+      }
       break;
     case 'gcd': case 'lcm':
       if (allNum && a.every(isInt)) {

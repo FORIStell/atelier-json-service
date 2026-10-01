@@ -1,7 +1,7 @@
 // Entry point: figure out what kind of problem the input is and solve it with steps.
 import { Q, MathError, isQ, toNum, formatNumber, primeFactors } from './rational.js';
 import { parse, normalizeInput } from './parser.js';
-import { fromRaw, simplify, expand, has, freeVars, evalNum, isNum, equal, sub, div, mul, add, pow, num, sym, polyCoeffs, numerDenom, subst, allRational, key, ZERO } from './cas.js';
+import { fromRaw, simplify, expand, has, freeVars, evalNum, isNum, isInt, equal, sub, div, mul, add, pow, num, sym, polyCoeffs, numerDenom, subst, allRational, key, ZERO, ONE } from './cas.js';
 import { tex, text, rawTex, relTex } from './print.js';
 import { arithmeticSteps } from './arith.js';
 import { factorExpr } from './factor.js';
@@ -33,6 +33,11 @@ function P(src, opts) { return fromRaw(parse(src), { degrees: opts.degrees }); }
 function dispatch(s, lower, opts, res) { // eslint-disable-line no-param-reassign
   let m;
   if ((m = s.match(/^(?:evaluate|calculate|compute|find|what is|what's|whats)\s+(.+?)\??$/i)) && !/^(?:the\s+)?(?:derivative|second|third|integral|limit|lim)\b/i.test(m[1])) { s = m[1]; lower = s.toLowerCase(); }
+  // ---------------- sums and products ----------------
+  if ((m = s.match(/^([ΣΠ])\[([a-z])=(.+?)\.\.(.+?)\]\s*(.+)$/)) || (m = s.match(/^(sum|product)\s+(?:of\s+)?(.+?)\s+for\s+([a-z])\s*=\s*(.+?)\s+to\s+(.+)$/i))) {
+    if (/^(sum|product)$/i.test(m[1])) return seriesProblem(m[1].toLowerCase() === 'sum' ? 'Σ' : 'Π', m[3], m[4], m[5], m[2], opts, res);
+    return seriesProblem(m[1], m[2], m[3], m[4], m[5], opts, res);
+  }
   // ---------------- matrices ----------------
   if (/\[/.test(s) && (m = matrixProblem(s, res))) return m;
   // ---------------- geometry ----------------
@@ -483,6 +488,69 @@ function complexProblem(node, raw, res) {
   const out = expand(x);
   return res('complex', 'Complex numbers', rawTex(raw), steps, tex(out), text(out));
 }
+
+function seriesProblem(kind, v, loSrc, hiSrc, bodySrc, opts, res) {
+  const body = S(fromRaw(parse(bodySrc)));
+  const lo = S(P(loSrc, opts)), hi = S(P(hiSrc, opts));
+  const sym0 = kind === 'Σ' ? '\\sum' : '\\prod';
+  const head = `${sym0}_{${v}=${tex(lo)}}^{${tex(hi)}} ${tex(body)}`;
+  const steps = [{ title: kind === 'Σ' ? 'Add up the terms' : 'Multiply the terms', math: head }];
+  const term = (k) => S(subst(body, v, num(k)));
+  if (!isInt(lo)) throw new MathError('The starting value must be a whole number');
+  const a = Number(lo.v.n);
+  // symbolic upper limit: use the standard formulas (polynomial terms, start at 1)
+  if (kind === 'Σ' && has(hi) && !has(hi, v)) {
+    const co = polyCoeffs(body, v);
+    if (!co || co.length > 4 || a !== 1) throw new MathError('I can only find formulas for sums of polynomials starting at 1');
+    const N = hi;
+    const F = [N, S(div(mul(N, add(N, ONE)), num(2))), S(div(mul(N, add(N, ONE), add(mul(num(2), N), ONE)), num(6))), S(pow(div(mul(N, add(N, ONE)), num(2)), num(2)))];
+    const names = ['\\sum 1 = n', '\\sum k = \\frac{n(n+1)}{2}', '\\sum k^2 = \\frac{n(n+1)(2n+1)}{6}', '\\sum k^3 = \\left(\\frac{n(n+1)}{2}\\right)^2'];
+    steps.push({ title: 'Split the sum and use the power-sum formulas', detail: co.map((c, i) => (isNum(c, 0) ? null : names[i])).filter(Boolean).join(',\\quad ') });
+    const out = expand(add(co.map((c, i) => mul(c, F[i]))));
+    let f;
+    try {
+      let L = 1n; for (const t of (out.t === 'add' ? out.a : [out])) { const [c] = coeffSplitLocal(t); if (isQ(c)) L = (L * c.d) / gcdB(L, c.d); }
+      const g = factorExpr(expand(mul(num(new Q(L)), out)), []).result;
+      f = L === 1n ? g : div(g, num(new Q(L)));
+      f = { ...S(f) };
+      if (L !== 1n) f = { t: 'mul', a: [g, num(new Q(1n, L))] };
+    } catch { f = out; }
+    steps.push({ title: 'Combine', math: `${tex(out)}${tex(f) !== tex(out) ? ` = ${tex(f)}` : ''}` });
+    return res('series', 'Sum', head, steps, tex(f), text(f));
+  }
+  const infinite = hi.t === 'sym' && hi.n === 'oo';
+  if (infinite) {
+    const t0 = term(a), t1 = term(a + 1), t2 = term(a + 2);
+    const r1 = S(div(t1, t0)), r2 = S(div(t2, t1));
+    if (kind === 'Σ' && r1.t === 'num' && equal(r1, r2) && Math.abs(evalNum(r1)) < 1) {
+      const val = S(div(t0, sub(ONE, r1)));
+      steps.push({ title: 'This is a geometric series: each term is the previous one times $r$', math: `a = ${tex(t0)},\\quad r = ${tex(r1)}` });
+      steps.push({ title: 'Because $|r| < 1$, use $S = \\frac{a}{1 - r}$', math: `\\frac{${tex(t0)}}{1 - ${wrapT(r1)}} = ${tex(val)}` });
+      return res('series', 'Infinite series', head, steps, tex(val), text(val));
+    }
+    let sum = 0, prev = 0;
+    for (let k = a; k < a + 200000; k++) { prev = sum; sum += evalNum(body, { [v]: k }); }
+    if (!Number.isFinite(sum) || Math.abs(sum - prev) > 1e-6 * Math.max(1, Math.abs(sum))) { steps.push({ title: 'The terms do not shrink fast enough, so the series diverges' }); return res('series', 'Infinite series', head, steps, '\\text{diverges}', 'Diverges'); }
+    steps.push({ title: 'Add many terms numerically until the total stops changing', math: `\\approx ${formatNumber(sum, 8)}` });
+    const known = [[Math.PI ** 2 / 6, '\\frac{\\pi^2}{6}'], [Math.E, 'e'], [Math.LN2, '\\ln 2'], [Math.PI / 4, '\\frac{\\pi}{4}']];
+    for (const [val, t] of known) if (Math.abs(sum - val) < 1e-4) { steps.push({ title: `This equals $${t}$` }); return res('series', 'Infinite series', head, steps, `${t} \\approx ${formatNumber(val, 8)}`, formatNumber(val, 8)); }
+    return res('series', 'Infinite series', head, steps, `\\approx ${formatNumber(sum, 8)}`, formatNumber(sum, 8));
+  }
+  if (!isInt(hi)) throw new MathError('The ending value must be a whole number');
+  const b = Number(hi.v.n);
+  if (b < a) return res('series', 'Sum', head, steps, kind === 'Σ' ? '0' : '1', kind === 'Σ' ? '0' : '1');
+  if (b - a > 100000) throw new MathError('That is too many terms');
+  const terms = [];
+  for (let k = a; k <= b; k++) terms.push(term(k));
+  const shown = terms.length <= 8 ? terms.map(wrapT) : [...terms.slice(0, 4).map(wrapT), '\\cdots', ...terms.slice(-2).map(wrapT)];
+  steps.push({ title: `Write out the ${terms.length} terms (${v} = ${a} to ${b})`, math: shown.join(kind === 'Σ' ? ' + ' : ' \\times ') });
+  const total = S(kind === 'Σ' ? add(terms) : mul(terms));
+  steps.push({ title: kind === 'Σ' ? 'Add them up' : 'Multiply them', math: `= ${tex(total)}${total.t === 'num' && isQ(total.v) && total.v.isInt() ? '' : ` \\approx ${formatNumber(evalNum(total))}`}` });
+  return res('series', kind === 'Σ' ? 'Sum' : 'Product', head, steps, tex(total), text(total));
+}
+const gcdB = (a, b) => { while (b) [a, b] = [b, a % b]; return a < 0n ? -a : a; };
+const coeffSplitLocal = (t) => (t.t === 'num' ? [t.v, null] : t.t === 'mul' && t.a[0].t === 'num' ? [t.a[0].v, t] : [Q.of(1), t]);
+const wrapT = (x) => (x.t === 'add' || (x.t === 'num' && isQ(x.v) && x.v.sign() < 0) ? `\\left(${tex(x)}\\right)` : tex(x));
 
 function convertProblem(src, to, res) {
   const pct = /%\s*$/.test(src);

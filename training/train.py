@@ -167,7 +167,17 @@ def main():
     xt_t = torch.from_numpy(xt)
     yt_t = torch.from_numpy(yt)
     best = 0
-    for ep in range(epochs):
+    tag = os.path.basename(os.path.normpath(OUT))
+    ckpt_path = os.path.join(DATA, f"ckpt_{tag}.pt")
+    best_path = os.path.join(DATA, f"best_{tag}.pt")
+    start = 0
+    if os.path.exists(ckpt_path):  # resume after an interruption
+        ck = torch.load(ckpt_path)
+        model.load_state_dict(ck["model"]); opt.load_state_dict(ck["opt"]); sched.load_state_dict(ck["sched"])
+        start, best = ck["ep"] + 1, ck["best"]
+        np.random.seed(1000 + start)
+        print("resumed at epoch", start + 1, flush=True)
+    for ep in range(start, epochs):
         model.train()
         t0 = time.time()
         idx = torch.from_numpy(np.random.choice(len(yt), steps * bs, p=w))
@@ -185,9 +195,10 @@ def main():
         print(f"epoch {ep + 1}/{epochs} loss {tot / steps:.4f} val_acc {acc:.4f} time {time.time() - t0:.0f}s", flush=True)
         if acc >= best:
             best = acc
-            torch.save(model.state_dict(), os.path.join(DATA, "symbols_best.pt"))
+            torch.save(model.state_dict(), best_path)
             export(model)
-    model.load_state_dict(torch.load(os.path.join(DATA, "symbols_best.pt")))
+        torch.save({"model": model.state_dict(), "opt": opt.state_dict(), "sched": sched.state_dict(), "ep": ep, "best": best}, ckpt_path)
+    model.load_state_dict(torch.load(best_path))
     acc, conf = evaluate(model, xv, yv)
     print("best val acc", acc)
     # most confused pairs

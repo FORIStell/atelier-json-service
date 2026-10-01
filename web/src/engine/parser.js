@@ -5,7 +5,7 @@ import { Q, MathError } from './rational.js';
 export const FUNCS = new Set([
   'sin', 'cos', 'tan', 'sec', 'csc', 'cot', 'asin', 'acos', 'atan', 'acot', 'asec', 'acsc',
   'sinh', 'cosh', 'tanh', 'ln', 'log', 'sqrt', 'cbrt', 'abs', 'exp', 'floor', 'ceil', 'round',
-  'gcd', 'lcm', 'max', 'min', 'root', 'nroot', 'sign',
+  'gcd', 'lcm', 'max', 'min', 'root', 'nroot', 'sign', 'ncr', 'npr', 'coth', 'sech', 'csch',
 ]);
 const FUNC_ALIASES = { arcsin: 'asin', arccos: 'acos', arctan: 'atan', arccot: 'acot', sen: 'sin', tg: 'tan', lg: 'log', arcsec: 'asec', arccsc: 'acsc', cosec: 'csc' };
 const GREEK = { 'π': 'pi', 'θ': 'theta', 'α': 'alpha', 'β': 'beta', 'γ': 'gamma', 'λ': 'lambda', 'μ': 'mu', 'σ': 'sigma', 'φ': 'phi', 'ω': 'omega', 'Δ': 'Delta', 'δ': 'delta' };
@@ -13,7 +13,7 @@ const NAMED = new Set(['pi', 'theta', 'alpha', 'beta', 'gamma', 'lambda', 'mu', 
 const SUPERS = { '⁰': '0', '¹': '1', '²': '2', '³': '3', '⁴': '4', '⁵': '5', '⁶': '6', '⁷': '7', '⁸': '8', '⁹': '9', '⁻': '-', 'ⁿ': 'n', 'ˣ': 'x' };
 
 export function normalizeInput(s) {
-  s = String(s);
+  s = String(s).replace(/\bnCr\b/g, 'ncr').replace(/\bnPr\b/g, 'npr');
   s = s.replace(/[−–—]/g, '-').replace(/[×✕✖⋅·∙]/g, '*').replace(/(\d)\s*[∶:]\s*(?=\d)/g, '$1÷').replace(/≤|=</g, '<=').replace(/≥|=>/g, '>=')
     .replace(/≠|!=|=\/=/g, '!=').replace(/\*\*/g, '^').replace(/∞/g, 'oo').replace(/√/g, ' sqrt').replace(/∛/g, ' cbrt')
     .replace(/[“”]/g, '"').replace(/ /g, ' ').replace(/\\cdot|\\times/g, '*').replace(/\\div/g, '/')
@@ -187,7 +187,7 @@ class Parser {
     } else if (name === 'log' && this.peek() && this.peek().k === 'num' && this.isOp('(', 1)) {
       base = R.num(this.next().v); // log2(8)
     }
-    if (this.isOp('^') && this.peek(1) && (this.peek(1).k === 'num' || this.isOp('-', 1))) { // sin^2(x)
+    if (this.isOp('^') && this.peek(1) && (this.peek(1).k === 'num' || this.isOp('-', 1) || (this.isOp('(', 1) && this.peek(2) && this.peek(2).k === 'num' && this.isOp(')', 3)))) { // sin^2(x), sin^(2)(x)
       this.next();
       power = this.parseExpr(35);
     }

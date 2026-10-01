@@ -161,6 +161,17 @@ function apply(node, decimal, opts) {
       const vv = typeof v === 'number' && Number.isInteger(v) ? Q.of(v) : v;
       return { v: vv, title: `Evaluate ${n}${deg ? ' (degrees)' : ''}`, detail: `\\${n.length <= 4 && !n.startsWith('a') ? n : 'operatorname{' + n + '}'}\\left(${show(x, decimal)}${deg ? '^{\\circ}' : ''}\\right) ${isQ(vv) ? '=' : '\\approx'} ${show(vv, decimal)}` };
     }
+    if (n === 'ncr' || n === 'npr') {
+      const [N, K] = node.a.map((c) => c.v);
+      if (!isQ(N) || !isQ(K) || !N.isInt() || !K.isInt() || K.cmp(N) > 0 || K.sign() < 0) throw new MathError('nCr / nPr need whole numbers with r ≤ n');
+      let p = 1n; const fs = [];
+      for (let j = 0n; j < K.n; j++) { p *= N.n - j; if (fs.length < 6) fs.push((N.n - j).toString()); }
+      let f = 1n; for (let j = 2n; j <= K.n; j++) f *= j;
+      const v = n === 'ncr' ? p / f : p;
+      const formula = n === 'ncr' ? `\\binom{${N.n}}{${K.n}} = \\frac{${N.n}!}{${K.n}!\\,(${N.n} - ${K.n})!}` : `P(${N.n}, ${K.n}) = \\frac{${N.n}!}{(${N.n} - ${K.n})!}`;
+      const calc = n === 'ncr' ? `\\frac{${fs.join(' \\times ') || 1}${K.n > 6n ? '\\cdots' : ''}}{${K.n}!} = \\frac{${p}}{${f}}` : `${fs.join(' \\times ') || 1}${K.n > 6n ? '\\cdots' : ''}`;
+      return { v: new Q(v), title: n === 'ncr' ? 'Combinations (order does not matter)' : 'Permutations (order matters)', detail: `${formula} = ${calc} = ${v}` };
+    }
     if (n === 'gcd' || n === 'lcm') {
       const ints = node.a.map((c) => c.v);
       if (!ints.every((q) => isQ(q) && q.isInt())) throw new MathError(`${n.toUpperCase()} needs whole numbers`);

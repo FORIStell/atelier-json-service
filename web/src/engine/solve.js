@@ -558,7 +558,16 @@ function trySubstitution(lhs, rhs, v, steps, depth, cands) {
       } catch (e) { steps.push({ title: 'No solution from this case' }); }
     }
     const out = { solutions: sortNodes(dedupe(sols)) };
-    if (general.length) out.general = dedupe(general);
+    if (general.length) {
+      // drop families that are the same angle (mod 2π), e.g. -π/2 and 3π/2
+      const seen = [];
+      out.general = dedupe(general).filter((g) => {
+        let v; try { v = evalNum(g, { k: 0 }); } catch { return true; }
+        const r = ((v % (2 * Math.PI)) + 2 * Math.PI) % (2 * Math.PI);
+        if (seen.some((q) => Math.abs(q - r) < 1e-9 || Math.abs(Math.abs(q - r) - 2 * Math.PI) < 1e-9)) return false;
+        seen.push(r); return true;
+      });
+    }
     return out;
   }
   return null;

@@ -20,7 +20,16 @@ Works on **iPhone, Android and PC**, installs like an app, and works **offline**
 | Derivatives | `d/dx x^3 sin(x)`, `second derivative of x^4` |
 | Integrals | `∫ x e^x dx`, `integrate from 0 to 1 of x^2` |
 | Limits | `lim x->2 (x^2-4)/(x-2)`, `lim x->oo (3x^2+1)/(x^2-5)` |
+| Sums and series | `Σ` template: Σ n² for n=1..10, Σ k for k=1..n (formula), geometric series to ∞ |
+| Combinatorics, complex numbers | `nCr(10,3)`, `nPr(5,2)`, `(3+4i)/(1+2i)`, `e^(iπ)` |
 | Statistics, number theory | `mean of 2,4,4,5`, `std of ...`, `gcd(12,18)`, `prime factorization of 360` |
+
+### The app
+
+* **Camera home screen** – point at a problem, drag the frame corners around it, tap the red button. Or pick a photo from the gallery. Flash button appears on phones that support it.
+* **Calculator** – a math keyboard with templates (□ boxes) for fractions, powers, any root, absolute value, logs, trig, limits, derivatives, integrals, sums, products, nCr and matrices. Hold a key with a red dot for more options (e.g. hold `>` for `< ≥ ≤ ≠`). ← → move the cursor, ⏎ solves, hold ⌫ to clear.
+* **Write** – write a problem with your finger.
+* **Menu** – history, degrees/radians, tips.
 
 Each answer comes with explanations of the rule used at every step (e.g. "Subtract 2x from both sides", "Quadratic formula", "Chain rule"), a check of the answer, and a graph when it helps.
 
@@ -36,7 +45,7 @@ Each answer comes with explanations of the rule used at every step (e.g. "Subtra
 
 ```
 web/
-  index.html, app.js, style.css   the app (tabs: Scan, Write, Calculator, History)
+  index.html, app.js, style.css   the app (camera home, calculator, write, solution, history)
   src/engine/                     the math engine (pure JavaScript)
     parser.js     text -> expression tree (implicit multiplication, unicode, LaTeX bits)
     rational.js   exact fractions with BigInt
@@ -46,6 +55,7 @@ web/
     solve.js      equations, inequalities, systems
     calculus.js   derivatives, integrals, limits
     index.js      decides what kind of problem it is
+    latex.js      converts the calculator keyboard's LaTeX into engine input
   src/ocr/                        reading photos and handwriting
     preprocess.js adaptive thresholding, connected components, 32x32 symbol images
     model.js      tiny CNN (408k parameters, 0.8 MB) running in plain JavaScript
@@ -82,4 +92,4 @@ python make_eval.py $MATH_DATA/eval && node eval_ocr.mjs $MATH_DATA/eval
 * Very messy handwriting, matrices, and multi-line work (e.g. long division layouts) are not recognized from photos; type them instead.
 * Some integrals and equations have no step-by-step method here; MathBot then says so or gives a numeric answer.
 
-Third-party: [KaTeX](https://katex.org) (MIT) is bundled in `web/vendor/katex` for math rendering.
+Third-party (MIT licensed, bundled so the app works offline): [KaTeX](https://katex.org) in `web/vendor/katex` for showing math, and [MathLive](https://mathlive.io) in `web/vendor/mathlive` for the editable math input box.

@@ -46,6 +46,8 @@ function dispatch(s, lower, opts, res) { // eslint-disable-line no-param-reassig
     const fname = /lcm|least/.test(m[1]) ? 'lcm' : 'gcd';
     return arithmetic(`${fname}(${nums.join(',')})`, opts, res);
   }
+  // ---------------- conversions ----------------
+  if ((m = s.match(/^(?:convert\s+)?(.+?)\s+(?:to|as|into|in)\s+(?:a\s+)?(fraction|decimal|percent|percentage|%|mixed number)s?$/i))) return convertProblem(m[1].trim(), m[2].toLowerCase(), res);
   // ---------------- percentages ----------------
   if ((m = s.match(/^([\d.]+)\s*%\s*of\s*(.+)$/i))) return arithmetic(`(${m[1]}/100)*(${m[2]})`, opts, res, `${m[1]}\\% \\text{ of } ${m[2]}`);
   if ((m = s.match(/^what (?:percent|%) of ([\d.]+) is ([\d.]+)\??$/i)) || (m = s.match(/^([\d.]+) is what (?:percent|%) of ([\d.]+)\??$/i))) {
@@ -262,6 +264,19 @@ function equationProblem(l, r, raw, forVar, res) {
   }
   const steps = [{ title: 'Start with the equation', math: rawTex(raw) }];
   const result = solveEquation(l, r, v, steps);
+  // check the answers by substituting them back (unless a check was already shown)
+  if (!steps.some((st) => /^Check/.test(st.title)) && result.solutions && result.solutions.length && result.solutions.length <= 3 && !result.general && freeVars(S(sub(l, r))).size === 1) {
+    const lines = [];
+    for (const sol of result.solutions) {
+      try {
+        const L = S(subst(l, v, sol)), R = S(subst(r, v, sol));
+        const ok = Math.abs(evalNum(L) - evalNum(R)) < 1e-7 * Math.max(1, Math.abs(evalNum(R)));
+        const short = (x) => (tex(x).length > 40 ? formatNumber(evalNum(x), 6) : tex(x));
+        lines.push(`${v} = ${short(sol)}:\\quad ${short(L)} ${ok ? '=' : '\\ne'} ${short(R)}\\ ${ok ? '\\checkmark' : '\\times'}`);
+      } catch { /* skip */ }
+    }
+    if (lines.length) steps.push({ title: 'Check: put the answer back into the original equation', detail: `\\begin{array}{l} ${lines.join(' \\\\ ')} \\end{array}` });
+  }
   const answerTex = solutionTex(v, result);
   steps.push({ title: 'Answer', math: answerTex });
   const extra = {};
@@ -424,6 +439,46 @@ function substituteRaw(r, v, val) {
   }
   return out;
 }
+
+function convertProblem(src, to, res) {
+  const pct = /%\s*$/.test(src);
+  const raw = parse(src);
+  const val = S(fromRaw(raw));
+  if (val.t !== 'num') throw new MathError('I can only convert plain numbers');
+  const q = isQ(val.v) ? val.v : Q.fromDecimalString(String(val.v));
+  const steps = [{ title: 'Start with the number', math: rawTex(raw) }];
+  const dec = q.toExactDecimal();
+  if (pct) steps.push({ title: 'Percent means "out of 100": divide by 100', math: `${rawTex(raw)} = ${tex(num(q))}` });
+  if (to === 'fraction' || to === 'mixed number') {
+    const d0 = String(src).replace('%', '').trim();
+    if (!pct && /\./.test(d0)) {
+      const places = d0.split('.')[1].length;
+      steps.push({ title: `Write it over $10^{${places}} = ${10 ** places}$ (${places} decimal place${places > 1 ? 's' : ''})`, math: `${d0} = \\frac{${d0.replace('.', '').replace(/^(-?)0+(?=\d)/, '$1')}}{${10 ** places}}` });
+    }
+    const g = bgcdLocal(q.n * 1n, q.d);
+    steps.push({ title: 'Simplify the fraction (divide top and bottom by their GCD)', math: `= ${tex(num(q))}` });
+    let ans = tex(num(q)), ansText = q.toString();
+    if (to === 'mixed number' && !q.isInt() && q.abs().cmp(Q.of(1)) > 0) {
+      const w = q.n / q.d, r = (q.n < 0n ? -q.n : q.n) % q.d;
+      ans = `${w}\\tfrac{${r}}{${q.d}}`; ansText = `${w} ${r}/${q.d}`;
+      steps.push({ title: 'Divide to get the whole part and the remainder', math: ans });
+    }
+    void g;
+    return res('convert', 'Convert to a fraction', rawTex(raw), steps, ans, ansText);
+  }
+  if (to === 'decimal') {
+    if (!q.isInt()) steps.push({ title: 'Divide the numerator by the denominator', math: `${q.n} \\div ${q.d}` });
+    const out = dec ?? formatNumber(q.toNumber(), 10);
+    if (!dec) steps.push({ title: 'The decimal repeats forever', math: `\\approx ${out}` });
+    return res('convert', 'Convert to a decimal', rawTex(raw), steps, (dec ? '' : '\\approx ') + out, out);
+  }
+  // percent
+  const p100 = q.mul(Q.of(100));
+  steps.push({ title: 'Multiply by 100 and add the % sign', math: `${tex(num(q))} \\times 100 = ${tex(num(p100))}\\%` });
+  const pd = p100.toExactDecimal() ?? formatNumber(p100.toNumber(), 6);
+  return res('convert', 'Convert to a percent', rawTex(raw), steps, `${pd}\\%`, `${pd}%`);
+}
+function bgcdLocal(a, b) { a = a < 0n ? -a : a; while (b) [a, b] = [b, a % b]; return a; }
 
 function primeFactorization(n, res) {
   if (n < 2n) throw new MathError('Prime factorization needs a whole number ≥ 2');

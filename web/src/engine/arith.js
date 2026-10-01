@@ -55,7 +55,7 @@ function tidy(r, decimal) {
     case 'neg': { const a = f(r.a); return isLit(a) ? lit(isQ(a.v) ? a.v.neg() : -a.v, decimal) : { ...r, a }; }
     case 'bin': {
       const l = f(r.l), rr = f(r.r);
-      if (r.op === '/' && isLit(l) && isLit(rr) && isQ(l.v) && isQ(rr.v) && l.v.isInt() && rr.v.isInt() && !rr.v.isZero() && !decimal) {
+      if (r.op === '/' && !r.obelus && isLit(l) && isLit(rr) && isQ(l.v) && isQ(rr.v) && l.v.isInt() && rr.v.isInt() && !rr.v.isZero() && !decimal) {
         const q = l.v.div(rr.v);
         if (!q.isInt() && l.v.n >= 0n && rr.v.n > 0n && bgcd(l.v.n, rr.v.n) === 1n) return { t: 'num', v: q, frac: true };
       }
@@ -99,14 +99,16 @@ function apply(node, decimal, opts) {
         const v = bothQ ? a.mul(b) : toNum(a) * toNum(b);
         let extra = '';
         if (bothQ && (!a.isInt() || !b.isInt()) && !decimal) extra = ` = \\frac{${a.n} \\times ${wrapBig(b.n)}}{${a.d} \\times ${b.d}}`;
-        return { v, title: 'Multiply', detail: `${S(node.l)} \\times ${wrapNeg(node.r, decimal)}${extra} = ${show(v, decimal)}` };
+        const lm = bothQ && a.isInt() && b.isInt() ? longMultiply(a.n, b.n) : null;
+        return { v, title: lm ? 'Multiply (long multiplication)' : 'Multiply', detail: lm || `${S(node.l)} \\times ${wrapNeg(node.r, decimal)}${extra} = ${show(v, decimal)}` };
       }
       case '/': {
         if (isQ(b) ? b.isZero() : b === 0) throw new MathError('Division by zero is undefined');
         const v = bothQ ? a.div(b) : toNum(a) / toNum(b);
         let extra = '';
         if (bothQ && !b.isInt() && !decimal) extra = ` = ${numTex(a)} \\times ${numTex(b.inv())}`;
-        return { v, title: bothQ && !b.isInt() && !decimal ? 'Divide (multiply by the reciprocal)' : 'Divide', detail: `${S(node.l)} \\div ${wrapNeg(node.r, decimal)}${extra} = ${show(v, decimal)}` };
+        const ld = bothQ && a.isInt() && b.isInt() ? longDivide(a.n, b.n) : null;
+        return { v, title: bothQ && !b.isInt() && !decimal ? 'Divide (multiply by the reciprocal)' : ld ? 'Divide (long division)' : 'Divide', detail: ld || `${S(node.l)} \\div ${wrapNeg(node.r, decimal)}${extra} = ${show(v, decimal)}` };
       }
       case '^': {
         let v = nvPowExact(a, b);
@@ -191,6 +193,37 @@ function apply(node, decimal, opts) {
     return { v: x, title: 'Angle in degrees', detail: `${show(x, decimal)}^{\\circ}` };
   }
   throw new MathError('Cannot evaluate');
+}
+// column multiplication with partial products, for whole numbers with 2+ digits
+function longMultiply(a, b) {
+  const neg = (a < 0n) !== (b < 0n);
+  a = a < 0n ? -a : a; b = b < 0n ? -b : b;
+  if (a < 10n || b < 10n || a > 10n ** 7n || b > 10n ** 7n) return null;
+  if (b > a) [a, b] = [b, a];
+  const digits = b.toString().split('').reverse();
+  const parts = digits.map((d, k) => a * BigInt(d) * 10n ** BigInt(k));
+  const total = a * b;
+  const rows = [`${a}`, `\\times\\ ${b}`, '\\hline', ...digits.map((d, k) => `${parts[k]} & \\scriptsize{(${a} \\times ${d}${k ? `\\times ${10n ** BigInt(k)}` : ''})}`)];
+  if (digits.length > 1) rows.push('\\hline', `${total}`);
+  return `\\begin{array}{rl} ${rows.map((r) => (r === '\\hline' ? r : r.includes('&') ? r : r + ' &')).join(' \\\\ ').replace(/\\\\ \\hline \\\\/g, '\\\\ \\hline')} \\end{array}${neg ? `\\quad\\text{negative sign: } -${total}` : ''}`;
+}
+// long division with remainder for whole numbers
+function longDivide(a, b) {
+  if (a < 0n || b <= 1n || (a < 100n && a % b === 0n)) return null;
+  const q = a / b, r = a % b;
+  const ds = a.toString();
+  const lines = [];
+  let cur = 0n;
+  for (let i = 0; i < ds.length; i++) {
+    cur = cur * 10n + BigInt(ds[i]);
+    if (cur < b && lines.length === 0) continue;
+    const d = cur / b;
+    lines.push(`\\text{${b} into ${cur}: } ${d} \\times ${b} = ${d * b},\\ \\text{remainder } ${cur - d * b}`);
+    cur -= d * b;
+    if (lines.length > 12) break;
+  }
+  const res = r === 0n ? `${q}` : `${q}\\ \\text{R}\\ ${r} = ${q}\\tfrac{${r}}{${b}}`;
+  return `\\begin{array}{l} ${lines.join(' \\\\ ')} \\\\ \\hline ${a} \\div ${b} = ${res} \\end{array}`;
 }
 const wrapNeg = (n, decimal) => (isQ(n.v) ? n.v.sign() < 0 : n.v < 0) ? `\\left(${show(n.v, decimal)}\\right)` : show(n.v, decimal);
 const wrapBig = (b) => (b < 0n ? `(${b})` : b.toString());

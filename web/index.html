@@ -1,0 +1,137 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>MathBot</title>
+  <meta name="description" content="Snap, write or type any math problem and see every step of the solution.">
+  <meta name="theme-color" content="#4f46e5">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="MathBot">
+  <link rel="manifest" href="manifest.webmanifest">
+  <link rel="icon" href="icons/icon-192.png">
+  <link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+  <link rel="stylesheet" href="vendor/katex/katex.min.css">
+  <link rel="stylesheet" href="style.css">
+  <script defer src="vendor/katex/katex.min.js"></script>
+  <script type="module" src="app.js"></script>
+</head>
+<body>
+  <header class="topbar">
+    <div class="brand">
+      <img src="icons/icon-192.png" alt="" width="32" height="32">
+      <span>MathBot</span>
+    </div>
+    <div class="top-actions">
+      <button id="angleBtn" class="chip" title="Angle mode for trig">RAD</button>
+    </div>
+  </header>
+
+  <nav class="tabs" role="tablist">
+    <button role="tab" data-tab="scan" aria-selected="false"><span class="ti">📷</span>Scan</button>
+    <button role="tab" data-tab="write" aria-selected="false"><span class="ti">✍️</span>Write</button>
+    <button role="tab" data-tab="type" aria-selected="true"><span class="ti">🧮</span>Calculator</button>
+    <button role="tab" data-tab="history" aria-selected="false"><span class="ti">🕘</span>History</button>
+  </nav>
+
+  <main>
+    <!-- SCAN -->
+    <section id="tab-scan" class="panel" hidden>
+      <div class="card">
+        <div class="row gap">
+          <label class="btn primary grow">
+            <input id="cameraInput" type="file" accept="image/*" capture="environment" hidden>
+            📷 Take a photo
+          </label>
+          <label class="btn grow">
+            <input id="fileInput" type="file" accept="image/*" hidden>
+            🖼️ Choose a picture
+          </label>
+        </div>
+        <div id="photoWrap" class="photo-wrap" hidden>
+          <canvas id="photoCanvas"></canvas>
+        </div>
+        <p id="photoHint" class="hint" hidden>Drag a box around <b>one</b> problem (or leave it to read everything), then tap <b>Read it</b>.</p>
+        <div class="row gap" id="photoActions" hidden>
+          <button id="readPhotoBtn" class="btn primary grow">🤖 Read it</button>
+          <button id="resetCropBtn" class="btn">Reset box</button>
+        </div>
+        <p class="hint small">Tip: write clearly with dark ink, fill the frame with the problem, and keep the paper flat and well lit.</p>
+      </div>
+    </section>
+
+    <!-- WRITE -->
+    <section id="tab-write" class="panel" hidden>
+      <div class="card">
+        <p class="hint">Write a problem with your finger, pen or mouse.</p>
+        <div class="pad-wrap"><canvas id="pad"></canvas></div>
+        <div class="row gap">
+          <button id="padUndo" class="btn">↶ Undo</button>
+          <button id="padClear" class="btn">Clear</button>
+          <button id="padRead" class="btn primary grow">🤖 Read it</button>
+        </div>
+      </div>
+    </section>
+
+    <!-- CALCULATOR -->
+    <section id="tab-type" class="panel">
+      <div class="card">
+        <div id="preview" class="preview" aria-live="polite"><span class="muted">Your problem will appear here</span></div>
+        <div class="input-row">
+          <input id="expr" type="text" autocomplete="off" autocapitalize="off" spellcheck="false"
+                 placeholder="e.g. 2x + 3 = 11" aria-label="Math problem">
+          <button id="kbdToggle" class="icon-btn" title="Use phone keyboard">⌨️</button>
+        </div>
+        <div class="keypad-tabs" role="tablist">
+          <button data-pad="basic" class="on">123</button>
+          <button data-pad="alg">x y √</button>
+          <button data-pad="fn">sin log</button>
+          <button data-pad="calc">d/dx ∫</button>
+        </div>
+        <div id="keypad" class="keypad"></div>
+        <button id="solveBtn" class="btn primary solve">Solve ▶</button>
+        <details class="examples">
+          <summary>Examples</summary>
+          <div id="examples" class="chips"></div>
+        </details>
+      </div>
+    </section>
+
+    <!-- HISTORY -->
+    <section id="tab-history" class="panel" hidden>
+      <div class="card">
+        <div class="row between"><h2>History</h2><button id="clearHistory" class="btn small">Clear</button></div>
+        <ul id="historyList" class="history"></ul>
+      </div>
+    </section>
+
+    <!-- RESULT -->
+    <section id="result" class="result" hidden>
+      <div class="card answer-card">
+        <div class="result-kind" id="resultKind"></div>
+        <div class="problem" id="resultProblem"></div>
+        <div class="answer-label">Answer</div>
+        <div class="answer" id="resultAnswer"></div>
+        <div class="row gap wrap">
+          <button id="copyBtn" class="btn small">Copy answer</button>
+          <button id="editBtn" class="btn small">Edit problem</button>
+        </div>
+      </div>
+      <div class="card">
+        <h2>Step-by-step</h2>
+        <ol id="steps" class="steps"></ol>
+      </div>
+      <div class="card" id="graphCard" hidden>
+        <h2>Graph</h2>
+        <canvas id="graph" class="graph"></canvas>
+      </div>
+    </section>
+
+    <div id="error" class="error" role="alert" hidden></div>
+    <div id="busy" class="busy" hidden><div class="spinner"></div><span id="busyText">Thinking…</span></div>
+  </main>
+  <footer class="foot">Works offline · Add to Home Screen to install</footer>
+</body>
+</html>

@@ -172,7 +172,7 @@ def main():
     best_path = os.path.join(DATA, f"best_{tag}.pt")
     start = 0
     if os.path.exists(ckpt_path):  # resume after an interruption
-        ck = torch.load(ckpt_path)
+        ck = torch.load(ckpt_path, weights_only=False)
         model.load_state_dict(ck["model"]); opt.load_state_dict(ck["opt"]); sched.load_state_dict(ck["sched"])
         start, best = ck["ep"] + 1, ck["best"]
         np.random.seed(1000 + start)

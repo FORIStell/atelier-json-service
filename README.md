@@ -70,15 +70,15 @@ tests/            engine tests (npm test)
 
 Two readers work together:
 
-1. **Fast reader** (always available, 0.8 MB): our own tiny CNN symbol classifier (408k parameters, plain JavaScript) plus layout rules for fractions, roots and exponents. It knows 56 symbols and was trained on ~190k images (MNIST, EMNIST, HASYv2, symbols cut out of CROHME, printed fonts).
+1. **Fast reader** (always available, 1.4 MB): our own tiny CNN symbol classifier (691k parameters, 94% per-symbol accuracy, plain JavaScript) plus layout rules for fractions, roots and exponents. It knows 56 symbols and was trained on ~190k images (MNIST, EMNIST, HASYv2, symbols cut out of CROHME, printed fonts).
 2. **Accurate reader** (optional one-time ~43 MB download, then offline): [Pix2Text-MFR 1.5](https://huggingface.co/breezedeus/pix2text-mfr-1.5) (MIT), shrunk to 8-bit, run with onnxruntime-web. It searches several readings limited to school-math symbols (rare symbols like π, α, cos are penalised), also scores the fast reader's reading, and keeps the best one our math engine can understand.
 
 Measured on real handwritten school-level problems that were never used for training ("exactly right" = the whole problem read correctly):
 
 | Test set | Fast reader | Pix2Text alone | Combined (used in the app) |
 |---|---|---|---|
-| CROHME 2019, 200 problems (handwriting drawn on tablets) | 37% | 50% | **70%** |
-| CROHME 2023, 200 problems (handwriting scanned on lined paper) | 17% | 34% | **52%** |
+| CROHME 2019, 200 problems (handwriting drawn on tablets) | 42% | 50% | **70%** |
+| CROHME 2023, 200 problems (handwriting scanned on lined paper) | 23% | 34% | **52%** |
 | Printed problems (synthetic photos) | 100% | – | – |
 
 Messy or unusual handwriting is still hard; always check the problem shown on the solution page and tap **Edit** to fix it.
@@ -90,7 +90,7 @@ pip install torch numpy pillow scipy pandas pyarrow
 cd training
 python extract_crohme.py $MATH_DATA/crohme_sym.npz $MATH_DATA/crohme/*.parquet
 python build_dataset.py
-python train.py 14          # writes web/model/symbols.{json,bin}
+WIDE=1 DATASET=symbols.npz python train.py 18   # writes web/model/symbols.{json,bin}
 python make_eval.py $MATH_DATA/eval && node eval_ocr.mjs $MATH_DATA/eval
 # combined reader evaluation (needs onnxruntime, tokenizers and the Pix2Text-MFR files in $MFR)
 python make_school_eval23.py $MATH_DATA/paper && node dump_tiny.mjs $MATH_DATA/paper $MATH_DATA/paper/tiny.json

@@ -14,7 +14,7 @@ import { text } from '../web/src/engine/print.js';
 
 const [dir, ...predFiles] = process.argv.slice(2);
 const idx = JSON.parse(fs.readFileSync(path.join(dir, 'index.json'), 'utf8'));
-const modelDir = new URL('../web/model/', import.meta.url).pathname;
+const modelDir = process.env.MODEL_DIR || new URL('../web/model/', import.meta.url).pathname;
 const meta = JSON.parse(fs.readFileSync(path.join(modelDir, 'symbols.json'), 'utf8'));
 const buf = fs.readFileSync(path.join(modelDir, 'symbols.bin'));
 const f16 = (h) => { const s = h & 0x8000 ? -1 : 1, e = (h >> 10) & 31, f = h & 1023; return e === 0 ? s * 2 ** -14 * (f / 1024) : e === 31 ? NaN : s * 2 ** (e - 15) * (1 + f / 1024); };

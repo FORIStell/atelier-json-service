@@ -64,6 +64,11 @@ const cases = [
   ['0.375 to fraction', '3/8'],
   ['3/8 as percent', '37.5%'],
   ['17/5 to mixed number', '3 2/5'],
+  ['(2+3i)(1-i)', '5 + i'],
+  ['(3+4i)/(1+2i)', '11/5 - 2*i/5'],
+  ['simplify 3sin(x)^2+3cos(x)^2+1', '4'],
+  ['increase 80 by 15%', '92'],
+  ['percent change from 50 to 65', '30%'],
 ];
 for (const [q, want] of cases) {
   test(q, () => {

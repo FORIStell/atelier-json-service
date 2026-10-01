@@ -48,6 +48,32 @@ function dispatch(s, lower, opts, res) { // eslint-disable-line no-param-reassig
   }
   // ---------------- conversions ----------------
   if ((m = s.match(/^(?:convert\s+)?(.+?)\s+(?:to|as|into|in)\s+(?:a\s+)?(fraction|decimal|percent|percentage|%|mixed number)s?$/i))) return convertProblem(m[1].trim(), m[2].toLowerCase(), res);
+  // ---------------- percent change ----------------
+  if ((m = s.match(/^(increase|decrease|raise|reduce)\s+([\d.]+)\s+by\s+([\d.]+)\s*%$/i)) || (m = s.match(/^([\d.]+)\s*%\s*(off|discount on|more than|less than|increase on|decrease on)\s+([\d.]+)$/i))) {
+    let up, base, p;
+    if (/^(increase|decrease|raise|reduce)/i.test(m[1])) { up = /increase|raise/i.test(m[1]); base = m[2]; p = m[3]; }
+    else { up = /more|increase/i.test(m[2]); base = m[3]; p = m[1]; }
+    const bq = Q.fromDecimalString(base), pq = Q.fromDecimalString(p);
+    const change = bq.mul(pq).div(Q.of(100));
+    const out = up ? bq.add(change) : bq.sub(change);
+    const D = (q) => q.toExactDecimal() ?? formatNumber(q.toNumber());
+    const steps = [
+      { title: `Find ${p}% of ${base}`, math: `${base} \\times \\frac{${p}}{100} = ${D(change)}` },
+      { title: up ? 'Add it to the original amount' : 'Subtract it from the original amount', math: `${base} ${up ? '+' : '-'} ${D(change)} = ${D(out)}` },
+      { title: 'Shortcut', math: `${base} \\times ${D(Q.of(1).add(up ? pq.div(Q.of(100)) : pq.div(Q.of(100)).neg()))} = ${D(out)}` },
+    ];
+    return res('percent', up ? 'Percent increase' : 'Percent decrease', `${base}\\ ${up ? '+' : '-'}\\ ${p}\\%`, steps, D(out), D(out));
+  }
+  if ((m = s.match(/^percent (?:change|increase|decrease) from ([\d.]+) to ([\d.]+)$/i))) {
+    const a = Q.fromDecimalString(m[1]), b = Q.fromDecimalString(m[2]);
+    const pc = b.sub(a).div(a).mul(Q.of(100));
+    const D = (q) => q.toExactDecimal() ?? formatNumber(q.toNumber(), 6);
+    const steps = [
+      { title: 'Percent change = (new − old) ÷ old × 100', math: `\\frac{${m[2]} - ${m[1]}}{${m[1]}} \\times 100` },
+      { title: 'Calculate', math: `\\frac{${D(b.sub(a))}}{${m[1]}} \\times 100 = ${D(pc)}\\%` },
+    ];
+    return res('percent', 'Percent change', `${m[1]} \\to ${m[2]}`, steps, `${D(pc)}\\%`, `${D(pc)}%`);
+  }
   // ---------------- percentages ----------------
   if ((m = s.match(/^([\d.]+)\s*%\s*of\s*(.+)$/i))) return arithmetic(`(${m[1]}/100)*(${m[2]})`, opts, res, `${m[1]}\\% \\text{ of } ${m[2]}`);
   if ((m = s.match(/^what (?:percent|%) of ([\d.]+) is ([\d.]+)\??$/i)) || (m = s.match(/^([\d.]+) is what (?:percent|%) of ([\d.]+)\??$/i))) {
@@ -111,6 +137,7 @@ function dispatch(s, lower, opts, res) { // eslint-disable-line no-param-reassig
     return inequalityProblem(l, op, r, raw, forVar, res);
   }
   if (node.t === 'prime') return derivativeProblem(text(node.a), null, 1, opts, res);
+  if (!has(node) && has(node, 'i')) return complexProblem(node, raw, res);
   if (!has(node)) return arithmetic(s, opts, res, null, raw);
   return simplifyProblem(s, opts, res, raw);
 }
@@ -438,6 +465,23 @@ function substituteRaw(r, v, val) {
     out[k] = Array.isArray(r[k]) ? r[k].map((c) => substituteRaw(c, v, val)) : substituteRaw(r[k], v, val);
   }
   return out;
+}
+
+// complex numbers a + bi
+function complexProblem(node, raw, res) {
+  const steps = [{ title: 'Start with the expression', math: rawTex(raw) }];
+  // division: multiply by the conjugate
+  let x = S(node);
+  const [N, D] = numerDenom(x);
+  if (has(D, 'i')) {
+    const ex = expand(D);
+    const conj = S(subst(ex, 'i', mul(num(-1), sym('i'))));
+    steps.push({ title: 'Multiply top and bottom by the conjugate of the denominator', math: `\\frac{${tex(N)}}{${tex(ex)}} \\cdot \\frac{${tex(conj)}}{${tex(conj)}}` });
+    x = S(div(expand(mul(N, conj)), expand(mul(ex, conj))));
+  }
+  steps.push({ title: 'Multiply out and use $i^2 = -1$', math: tex(expand(x)) });
+  const out = expand(x);
+  return res('complex', 'Complex numbers', rawTex(raw), steps, tex(out), text(out));
 }
 
 function convertProblem(src, to, res) {

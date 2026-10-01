@@ -236,6 +236,19 @@ function simpAdd(terms) {
     if (groups.has(kk)) groups.get(kk)[0] = nvAdd(groups.get(kk)[0], k);
     else groups.set(kk, [k, rest]);
   }
+  // c*sin(u)^2 + c*cos(u)^2 = c
+  for (const [kk, g] of groups) {
+    const r = g[1];
+    if (r && r.t === 'pow' && r.b.t === 'fn' && r.b.n === 'sin' && isNum(r.e, 2)) {
+      const ck = key({ t: 'pow', b: { t: 'fn', n: 'cos', a: r.b.a }, e: r.e });
+      const other = groups.get(ck);
+      if (other && isQ(other[0]) && isQ(g[0])) {
+        const m = g[0].cmp(other[0]) <= 0 ? g[0] : other[0];
+        c = nvAdd(c, m); g[0] = g[0].sub(m); other[0] = other[0].sub(m);
+      }
+    }
+    void kk;
+  }
   const out = [];
   for (const [k, rest] of groups.values()) {
     if (nvIsZero(k)) continue;
@@ -385,6 +398,10 @@ function simpPow(b, e, opts = {}) {
     if (isQ(c) && c.sign() > 0 && !c.isOne() && rest) return simpMul([simpPow(num(c), e), simpPow(rest, e)], opts);
   }
   if (b.t === 'sym' && b.n === 'e' && e.t === 'fn' && e.n === 'ln') return e.a[0];
+  if (b.t === 'sym' && b.n === 'i' && isInt(e)) { // i^2 = -1
+    const k = Number(((e.v.n % 4n) + 4n) % 4n);
+    return [ONE, b, num(-1), { t: 'mul', a: [num(-1), b] }][k];
+  }
   if (b.t === 'fn' && b.n === 'abs' && e.t === 'num' && isQ(e.v) && e.v.isInt() && e.v.n % 2n === 0n) return simpPow(b.a[0], e);
   return { t: 'pow', b, e };
 }

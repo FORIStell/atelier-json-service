@@ -25,6 +25,10 @@ export function recognizeMask(mask, w, h, model) {
   const big = comps.filter((c) => c.area >= 12);
   let medH = median((big.length ? big : comps).map((c) => c.h));
   comps = comps.filter((c) => Math.max(c.w, c.h) >= Math.max(2, 0.12 * medH));
+  // page edges, table lines, shadows: long things touching the border or very long thin lines
+  const touches = (c) => c.x0 <= 1 || c.y0 <= 1 || c.x1 >= w - 1 || c.y1 >= h - 1;
+  comps = comps.filter((c) => !(touches(c) && Math.max(c.w, c.h) > 2.2 * medH) && !(Math.max(c.w, c.h) > 7 * medH && Math.min(c.w, c.h) < 0.3 * Math.max(c.w, c.h)) && !(c.area > 0.6 * c.w * c.h && c.w > 3 * medH && c.h > 3 * medH));
+  if (!comps.length) return { lines: [], items: [] };
   medH = median(comps.filter((c) => !isFlat(c, medH) && !isDot(c, medH)).map((c) => c.h)) || medH;
   const ctx = { model, w, medH };
 
@@ -187,7 +191,7 @@ function splitLines(items, medH) {
   return lines.map((l) => l.items);
 }
 
-const isBaseItem = (it) => it.kind || /^[0-9a-zπθ)\]∞!]$/.test(it.label || '');
+const isBaseItem = (it) => it.kind || /^[0-9a-zπθ)\]∞!×]$/.test(it.label || '');
 function lineTokens(items, ctx) {
   items = items.slice().sort((a, b) => a.x0 - b.x0 || a.cx - b.cx);
   const medH = median(items.filter((it) => !it.kind && !isDot(it, ctx.medH) && !isFlat(it, ctx.medH)).map((it) => it.h)) || ctx.medH;

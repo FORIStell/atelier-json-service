@@ -392,6 +392,7 @@ $('padRead').addEventListener('click', async () => {
     const { g, w, h } = grayFromImage(pad, null, 1000);
     const mask = binarize(g, w, h, { clean: true });
     const out = recognizeMask(mask, w, h, model);
+    window.__lastOCR = out;
     busy(false);
     await useRecognized(out.lines);
   } catch (e) {

@@ -2,7 +2,7 @@
 import { Q, MathError, isQ, toNum, formatNumber, primeFactors } from './rational.js';
 import { parse, normalizeInput } from './parser.js';
 import { fromRaw, simplify, expand, has, freeVars, evalNum, isNum, isInt, equal, sub, div, mul, add, pow, num, sym, polyCoeffs, numerDenom, subst, allRational, key, ZERO, ONE } from './cas.js';
-import { tex, text, rawTex, relTex } from './print.js';
+import { tex, text, rawTex, relTex, isNegative, negate } from './print.js';
 import { arithmeticSteps } from './arith.js';
 import { factorExpr } from './factor.js';
 import { solveEquation, solveInequality, solveSystem, solveCompound, intervalsTex, intervalsText, chooseVar } from './solve.js';
@@ -182,14 +182,32 @@ function simplifyProblem(src, opts, res, raw) {
   const [N, D] = numerDenom(cur);
   const vars = [...freeVars(cur)];
   if (has(D) && vars.length >= 1) {
+    // a single term on the bottom: divide every term on top by it, if that leaves no fractions
+    if (D.t !== 'add') {
+      const eN = expand(N);
+      const tops = eN.t === 'add' ? eN.a : [eN];
+      const parts = tops.map((t) => S(div(t, D)));
+      if (tops.length > 1 && parts.every((p) => !has(numerDenom(p)[1]))) {
+        const sum = (xs, f) => xs.map((x, i) => (i === 0 ? (isNegative(x) ? '-' + f(negate(x)) : f(x)) : (isNegative(x) ? ' - ' : ' + ') + f(isNegative(x) ? negate(x) : x))).join('');
+        steps.push({ title: 'Split the fraction: divide every term on top by the bottom', math: sum(tops, (t) => `\\frac{${tex(t)}}{${tex(D)}}`) });
+        steps.push({ title: 'Simplify each part. Same base: subtract the exponents, $\\frac{x^a}{x^b} = x^{a-b}$', math: sum(parts, (p) => (p.t === 'add' ? `\\left(${tex(p)}\\right)` : tex(p))) });
+        cur = S(add(parts));
+        if (tex(cur) !== sum(parts, tex)) steps.push({ title: 'Combine like terms', math: tex(cur) });
+        steps.push({ title: 'Restriction (the bottom can\'t be zero)', detail: `${tex(D)} \\ne 0` });
+        return res('simplify', 'Simplify', rawTex(raw), steps, tex(cur), text(cur));
+      }
+    }
     let fN, fD;
     try { fN = factorExpr(N, []).result; fD = factorExpr(D, []).result; } catch { fN = N; fD = D; }
-    steps.push({ title: 'Factor the numerator and the denominator', math: `\\frac{${tex(fN)}}{${tex(fD)}}` });
+    if (!equal(fN, S(N)) || !equal(fD, S(D))) steps.push({ title: 'Factor the numerator and the denominator', math: `\\frac{${tex(fN)}}{${tex(fD)}}` });
     const reduced = cancelFactors(fN, fD);
-    if (reduced) {
-      steps.push({ title: 'Cancel the common factors', math: tex(reduced.result), detail: reduced.cancelled.length ? `\\text{cancelled: } ${reduced.cancelled.map(tex).join(',\\ ')}` : undefined });
+    if (reduced && reduced.cancelled.length) {
+      steps.push({ title: 'Cancel the common factors', math: tex(reduced.result), detail: `\\text{cancelled: } ${reduced.cancelled.map(tex).join(',\\ ')}` });
       cur = reduced.result;
-      if (reduced.cancelled.length) steps.push({ title: 'Restriction', detail: reduced.cancelled.map((c) => `${tex(c)} \\ne 0`).join(',\\ ') });
+      steps.push({ title: 'Restriction', detail: reduced.cancelled.map((c) => `${tex(c)} \\ne 0`).join(',\\ ') });
+    } else {
+      cur = S(div(fN, fD));
+      steps.push({ title: 'The top and bottom have no common factors, so this is already as simple as it gets', math: tex(cur) });
     }
     return res('simplify', 'Simplify', rawTex(raw), steps, tex(cur), text(cur));
   }

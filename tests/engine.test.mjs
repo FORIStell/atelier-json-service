@@ -69,6 +69,12 @@ const cases = [
   ['simplify 3sin(x)^2+3cos(x)^2+1', '4'],
   ['increase 80 by 15%', '92'],
   ['percent change from 50 to 65', '30%'],
+  ['simplify (x^(1/4)+x)/x^(1/4)', 'x^(3/4) + 1'],
+  ['simplify (6x^3+3x)/(3x)', '2*x^2 + 1'],
+  ['simplify (x+1)/x', '(x + 1)/x'],
+  ['simplify (x^3-1)/(x-1)', 'x^2 + x + 1'],
+  ['simplify (x^2-1)/(x^2+2x+1)', '(x - 1)/(x + 1)'],
+  ['simplify (x+1)/(2x+2)', '1/2'],
 ];
 for (const [q, want] of cases) {
   test(q, () => {

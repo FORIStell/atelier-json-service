@@ -25,6 +25,7 @@ const cases = [
   ['\\sin^{2}\\left(x\\right)+\\cos^2x', '1'],
   ['e^{i\\pi}', '-1'],
   ['3\\times4\\div2', '6'],
+  ['\\frac{x^{\\frac14}+x}{x^{\\frac14}}', 'x^(3/4) + 1'],
 ];
 for (const [latex, want] of cases) test(latex, () => assert.equal(solveProblem(latexToText(latex)).answerText, want));
 test('empty boxes give a clear message', () => assert.throws(() => latexToText('\\frac{1}{\\placeholder{}}'), /empty boxes/));

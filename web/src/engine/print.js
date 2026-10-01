@@ -200,7 +200,10 @@ export function rawTex(r) {
   switch (r.t) {
     case 'num': return r.src && !isQ(r.v) ? r.src : r.src ?? numTex(r.v);
     case 'sym': return SYM_TEX[r.n] || r.n;
-    case 'paren': return r.br === '[' ? `\\left[${rawTex(r.a)}\\right]` : `\\left(${rawTex(r.a)}\\right)`;
+    case 'paren':
+      // brackets around brackets, or around a fraction bar (which already groups), add nothing
+      if (r.a.t === 'paren' || (r.a.t === 'bin' && r.a.op === '/' && !r.a.obelus)) return rawTex(r.a);
+      return r.br === '[' ? `\\left[${rawTex(r.a)}\\right]` : `\\left(${rawTex(r.a)}\\right)`;
     case 'neg': return '-' + (r.a.t === 'bin' && (r.a.op === '+' || r.a.op === '-') ? `\\left(${rawTex(r.a)}\\right)` : rawTex(r.a));
     case 'bin': {
       const l = rawTex(r.l), rr = rawTex(r.r);
@@ -241,5 +244,5 @@ export function rawTex(r) {
   return '?';
 }
 const rawNeg = (r) => r.t === 'neg' || (r.t === 'num' && (r.v.sign ? r.v.sign() < 0 : r.v < 0));
-const stripParen = (r) => rawTex(r.t === 'paren' ? r.a : r);
+const stripParen = (r) => { while (r.t === 'paren') r = r.a; return rawTex(r); };
 export { numTex };

@@ -8,6 +8,8 @@ import { factorExpr } from './factor.js';
 import { solveEquation, solveInequality, solveSystem, solveCompound, intervalsTex, intervalsText, chooseVar } from './solve.js';
 import { derivative, integrate, definiteIntegral, limit } from './calculus.js';
 import { toQArray, deg, toNode, rationalRoots, synthDiv } from './poly.js';
+import { matrixProblem } from './matrix.js';
+import { geometryProblem } from './geometry.js';
 
 const S = (x) => simplify(x);
 
@@ -28,8 +30,13 @@ export function solveProblem(input, opts = {}) {
 
 function P(src, opts) { return fromRaw(parse(src), { degrees: opts.degrees }); }
 
-function dispatch(s, lower, opts, res) {
+function dispatch(s, lower, opts, res) { // eslint-disable-line no-param-reassign
   let m;
+  if ((m = s.match(/^(?:evaluate|calculate|compute|find|what is|what's|whats)\s+(.+?)\??$/i)) && !/^(?:the\s+)?(?:derivative|second|third|integral|limit|lim)\b/i.test(m[1])) { s = m[1]; lower = s.toLowerCase(); }
+  // ---------------- matrices ----------------
+  if (/\[/.test(s) && (m = matrixProblem(s, res))) return m;
+  // ---------------- geometry ----------------
+  if (/area|volume|perimeter|circumference|hypotenuse|pythagor/i.test(s) && (m = geometryProblem(s, res))) return m;
   // ---------------- statistics ----------------
   if ((m = lower.match(/^(mean|average|median|mode|range|standard deviation|std|variance|sum|stats|statistics)\s*(of)?\s*[:(]?\s*([-\d.,\s]+)\)?$/))) return statistics(m[1], m[3], res);
   // ---------------- prime factorization ----------------
@@ -115,9 +122,20 @@ function arithmetic(src, opts, res, inputTex, raw) {
     const exact = S(node);
     const v = evalNum(exact);
     const steps = [{ title: 'Start with the problem', math: rawTex(raw) }, { title: 'Simplify exactly', math: tex(exact) }, { title: 'Decimal value', math: `\\approx ${formatNumber(v)}` }];
-    return res('arithmetic', 'Evaluate', inputTex || rawTex(raw), steps, `${tex(exact)}${exact.t === 'num' ? '' : ` \\approx ${formatNumber(v)}`}`, `${text(exact)} ≈ ${formatNumber(v)}`);
+    const isExactNum = exact.t === 'num';
+    return res('arithmetic', 'Evaluate', inputTex || rawTex(raw), steps, `${tex(exact)}${isExactNum ? '' : ` \\approx ${formatNumber(v)}`}`, isExactNum ? text(exact) : `${text(exact)} ≈ ${formatNumber(v)}`);
   }
   const r = arithmeticSteps(raw, opts);
+  if (!isQ(r.value)) {
+    // irrational result: also give the exact simplified form (e.g. sqrt(50) = 5*sqrt(2))
+    try {
+      const exact = S(fromRaw(raw, { degrees: opts.degrees }));
+      if (exact.t !== 'num' && !has(exact) && tex(exact).length < 60) {
+        r.steps.push({ title: 'Exact form', math: `${tex(exact)} \\approx ${formatNumber(evalNum(exact))}` });
+        return res('arithmetic', 'Calculate', inputTex || rawTex(raw), r.steps, `${tex(exact)} \\approx ${formatNumber(evalNum(exact))}`, `${text(exact)} ≈ ${formatNumber(evalNum(exact))}`);
+      }
+    } catch { /* keep decimal */ }
+  }
   return res('arithmetic', 'Calculate', inputTex || rawTex(raw), r.steps, r.answerTex, r.answerText);
 }
 
@@ -356,7 +374,7 @@ function integralProblem(src, v, a, b, opts, res) {
   const F = integrate(node, v, steps);
   if (!F) throw new MathError('I could not find this antiderivative step by step. Try a definite integral (with limits) for a numeric answer.');
   let ans = S(F);
-  try { const ex = expand(ans); if (text(ex).length < text(ans).length) ans = ex; } catch { /* keep */ }
+  try { const ex = expand(ans); if (text(ex).length < 1.4 * text(ans).length) ans = ex; } catch { /* keep */ }
   steps.push({ title: 'Add the constant of integration $C$', math: `${tex(ans)} + C` });
   // verify by differentiating
   try {

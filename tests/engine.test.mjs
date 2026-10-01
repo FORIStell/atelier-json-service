@@ -44,6 +44,18 @@ const cases = [
   ['simplify (x^2-9)/(x+3)', 'x - 3'],
   ['prime factorization of 360', '2^3 × 3^2 × 5'],
   ['solve for y: 2x+3y=6', 'y = (-2*x + 6)/3'],
+  ['sqrt(50)', '5*sqrt(2) ≈ 7.071067812'],
+  ['solve x^2-2x-1=0 for x', 'x = 1 - sqrt(2), x = 1 + sqrt(2)'],
+  ['what is 25% of 200', '50'],
+  ['evaluate 2x^2-3 at x=4', '29'],
+  ['det [[1,2,3,4],[5,6,7,8],[2,6,4,8],[3,1,1,2]]', '72'],
+  ['inverse [[4,7],[2,6]]', '[[3/5, -7/10], [-1/5, 2/5]]'],
+  ['[[1,2],[3,4]]*[[5,6],[7,8]]', '[[19, 22], [43, 50]]'],
+  ['area of a circle with radius 5', '25*π ≈ 78.5398'],
+  ['hypotenuse 3 and 4', 'c = 5'],
+  ['x^2+y^2=25, x+y=7', '(x = 4, y = 3), (x = 3, y = 4)'],
+  ['integrate x^2 e^x', 'x^2*e^x - 2*x*e^x + 2*e^x + C'],
+  ['lim x->oo (1+1/x)^x', 'e'],
 ];
 for (const [q, want] of cases) {
   test(q, () => {

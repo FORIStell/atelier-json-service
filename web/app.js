@@ -56,7 +56,8 @@ const PADS = {
     ['x', 'x', 'op'], ['y', 'y', 'op'], ['z', 'z', 'op'], ['a', 'a'], ['b', 'b'], ['n', 'n'],
     ['<', '<', 'op'], ['>', '>', 'op'], ['≤', '<=', 'op'], ['≥', '>=', 'op'], ['|x|', 'abs(', 'op'], [',', ', ', 'op'],
     ['π', 'pi', 'op'], ['e', 'e', 'op'], ['ⁿ√', 'root(', 'op'], ['!', '!', 'op'], ['°', '°', 'op'], ['⌫', 'BACK', 'op'],
-    ['factor', 'factor '], ['expand', 'expand '], ['simplify', 'simplify '], ['solve', 'solve '], ['←', 'LEFT', 'op'], ['→', 'RIGHT', 'op'],
+    ['factor', 'factor '], ['expand', 'expand '], ['simplify', 'simplify '], ['solve', 'solve '], ['[ ]', '[', 'op'], [']', ']', 'op'],
+    ['det', 'det [[1,2],[3,4]]', 'wide'], ['inverse', 'inverse [[1,2],[3,4]]', 'wide'], ['←', 'LEFT', 'op'], ['→', 'RIGHT', 'op'],
   ],
   fn: [
     ['sin', 'sin('], ['cos', 'cos('], ['tan', 'tan('], ['sin⁻¹', 'asin('], ['cos⁻¹', 'acos('], ['tan⁻¹', 'atan('],
@@ -121,7 +122,7 @@ $('solveBtn').addEventListener('click', () => solve());
 const EXAMPLES = ['2+3*4^2', '1/2 + 3/4', '3(x+2) - 4 = 2x + 7', 'x^2 - 5x + 6 = 0', '2x^2 + 3x - 4 = 0', 'x^3 - 6x^2 + 11x - 6 = 0',
   '2x + 3y = 12, x - y = -1', 'sqrt(x+3) = x - 3', '|2x - 1| = 5', '2^(x+1) = 16', 'log(x) + log(x-3) = 1', '2sin(x) - 1 = 0',
   'x^2 - 4 > 0', 'factor 6x^2 + 11x - 10', 'expand (x+2)^3', 'simplify (x^2-9)/(x+3)', 'd/dx x^3 sin(x)', '∫ x e^x dx',
-  'integrate from 0 to 2 of x^2', 'lim x->2 (x^2-4)/(x-2)', 'y = x^2 - 4x + 3', '15% of 80', 'prime factorization of 360', 'mean of 2, 4, 4, 5, 7'];
+  'integrate from 0 to 2 of x^2', 'lim x->2 (x^2-4)/(x-2)', 'y = x^2 - 4x + 3', '15% of 80', 'prime factorization of 360', 'mean of 2, 4, 4, 5, 7', 'det [[2,0,1],[1,3,2],[1,1,1]]', 'inverse [[4,7],[2,6]]', 'area of a circle with radius 5', 'hypotenuse 3 and 4'];
 for (const ex of EXAMPLES) {
   const b = document.createElement('button');
   b.textContent = ex;

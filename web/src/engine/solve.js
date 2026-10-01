@@ -175,6 +175,17 @@ export function quadRootNodes(a, b, c) {
   // a,b,c: Q. returns { D, roots: [node,node] (or complex) , real:boolean }
   const D = b.mul(b).sub(Q.of(4).mul(a).mul(c));
   const twoA = Q.of(2).mul(a);
+  if (D.sign() >= 0 && a.isInt() && b.isInt() && c.isInt()) {
+    const sD = S(sqrt(num(D)));
+    const [k, rad] = coeffSplit(sD);
+    if (rad && isQ(k) && k.isInt()) {
+      let g = bgcd(bgcd(b.n, k.n), twoA.n);
+      if (twoA.sign() < 0) g = -g;
+      const B = b.neg().div(Q.of(g)), K = k.div(Q.of(g)), A2 = twoA.div(Q.of(g));
+      const mk = (sg) => S(div(add(num(B), mul(num(sg < 0 ? K.neg() : K), rad)), num(A2)));
+      return { D, real: true, roots: [mk(-1), mk(1)].sort((p, q) => evalNum(p) - evalNum(q)) };
+    }
+  }
   if (D.sign() >= 0) {
     const sD = S(sqrt(num(D)));
     const r1 = S(div(add(num(b.neg()), neg(sD)), num(twoA)));

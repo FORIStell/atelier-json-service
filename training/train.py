@@ -17,7 +17,9 @@ import torch.nn.functional as F
 from common import BOX, CLASSES, CLASS_INDEX, SIZE
 
 DATA = os.environ.get("MATH_DATA", "/home/user/data")
-OUT = os.path.join(os.path.dirname(__file__), "..", "web", "model")
+OUT = os.environ.get("MODEL_OUT", os.path.join(os.path.dirname(__file__), "..", "web", "model"))
+DATASET = os.environ.get("DATASET", "symbols.npz")
+WIDE = os.environ.get("WIDE", "0") == "1"
 torch.set_num_threads(os.cpu_count() or 4)
 torch.manual_seed(0)
 np.random.seed(0)
@@ -26,7 +28,7 @@ MIRROR = [("(", ")"), ("[", "]"), ("<", ">"), ("≤", "≥")]
 
 
 class Net(nn.Module):
-    def __init__(self, n):
+    def __init__(self, n, wide=WIDE):
         super().__init__()
 
         def block(i, o):
@@ -35,10 +37,11 @@ class Net(nn.Module):
         self.features = nn.Sequential(
             block(1, 32), block(32, 32), nn.MaxPool2d(2),
             block(32, 64), block(64, 64), nn.MaxPool2d(2),
-            block(64, 128), nn.MaxPool2d(2),
+            *([block(64, 128), block(128, 128)] if wide else [block(64, 128)]), nn.MaxPool2d(2),
         )
-        self.fc1 = nn.Linear(128 * 4 * 4, 128)
-        self.fc2 = nn.Linear(128, n)
+        hidden = 192 if wide else 128
+        self.fc1 = nn.Linear(128 * 4 * 4, hidden)
+        self.fc2 = nn.Linear(hidden, n)
         self.drop = nn.Dropout(0.3)
 
     def forward(self, x):
@@ -80,19 +83,22 @@ def augment(x):
 
 
 def load():
-    d = np.load(f"{DATA}/symbols.npz")
+    d = np.load(f"{DATA}/{DATASET}")
     x, y = d["x"], d["y"].astype(np.int64)
-    extra_x, extra_y = [], []
+    src = d["src"] if "src" in d else np.zeros(len(y), np.int8)
+    extra_x, extra_y, extra_s = [], [], []
     for a, b in MIRROR:
         ia, ib = CLASS_INDEX[a], CLASS_INDEX[b]
-        extra_x.append(x[y == ia][:, :, ::-1]); extra_y.append(np.full((y == ia).sum(), ib))
-        extra_x.append(x[y == ib][:, :, ::-1]); extra_y.append(np.full((y == ib).sum(), ia))
+        for i_from, i_to in ((ia, ib), (ib, ia)):
+            m = y == i_from
+            extra_x.append(x[m][:, :, ::-1]); extra_y.append(np.full(m.sum(), i_to)); extra_s.append(src[m])
     x = np.concatenate([x] + extra_x)
     y = np.concatenate([y] + extra_y)
+    src = np.concatenate([src] + extra_s)
     perm = np.random.permutation(len(y))
-    x, y = x[perm], y[perm]
+    x, y, src = x[perm], y[perm], src[perm]
     nval = len(y) // 20
-    return (x[nval:], y[nval:]), (x[:nval], y[:nval])
+    return (x[nval:], y[nval:], src[nval:]), (x[:nval], y[:nval])
 
 
 def evaluate(model, x, y):
@@ -147,10 +153,10 @@ def export(model):
 
 def main():
     epochs = int(sys.argv[1]) if len(sys.argv) > 1 else 14
-    (xt, yt), (xv, yv) = load()
+    (xt, yt, st), (xv, yv) = load()
     print("train", len(yt), "val", len(yv), flush=True)
     counts = np.bincount(yt, minlength=len(CLASSES))
-    w = 1 / np.sqrt(counts[yt])
+    w = 1 / np.sqrt(counts[yt]) * np.where(st == 3, 2.0, 1.0)  # real math handwriting (CROHME) counts double
     w = w / w.sum()
     model = Net(len(CLASSES))
     print("params", sum(p.numel() for p in model.parameters()))

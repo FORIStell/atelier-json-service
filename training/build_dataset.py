@@ -25,10 +25,13 @@ rng = np.random.default_rng(0)
 random.seed(0)
 
 
+SRC = {"cur": 0}
+
+
 def add(store, img, label):
     if img is None:
         return
-    store.setdefault(label, []).append((np.clip(img, 0, 1) * 255).astype(np.uint8))
+    store.setdefault(label, []).append(((np.clip(img, 0, 1) * 255).astype(np.uint8), SRC["cur"]))
 
 
 def from_mnist(store, cap=4000):
@@ -94,9 +97,9 @@ def from_hasy(store, cap=3000):
 
 
 def from_crohme(store):
-    d = np.load(f"{DATA}/crohme_sym.npz")
+    d = np.load(f"{DATA}/crohme_sym_train.npz")  # 2019 split is kept for testing
     for a, y in zip(d["x"], d["y"]):
-        store.setdefault(int(y), []).append(a)
+        store.setdefault(int(y), []).append((a, SRC["cur"]))
 
 
 FONT_DIRS = ["/usr/share/fonts"]
@@ -145,20 +148,23 @@ def from_fonts(store, per_font=6):
 
 def main(out):
     store = {}
-    for name, fn in [("mnist", from_mnist), ("emnist", from_emnist), ("hasy", from_hasy), ("crohme", from_crohme), ("fonts", from_fonts)]:
+    for k, (name, fn) in enumerate([("mnist", from_mnist), ("emnist", from_emnist), ("hasy", from_hasy), ("crohme", from_crohme), ("fonts", from_fonts)]):
+        SRC["cur"] = k
         before = sum(len(v) for v in store.values())
         fn(store)
         print(name, "added", sum(len(v) for v in store.values()) - before, flush=True)
-    xs, ys = [], []
+    xs, ys, ss = [], [], []
     for y, imgs in sorted(store.items()):
         print(f"{CLASSES[y]!r}: {len(imgs)}", end="  ")
-        xs.extend(imgs)
+        xs.extend(a for a, _ in imgs)
+        ss.extend(src for _, src in imgs)
         ys.extend([y] * len(imgs))
     print()
     x = np.stack(xs)
     y = np.array(ys, np.int16)
+    src = np.array(ss, np.int8)
     perm = rng.permutation(len(y))
-    np.savez_compressed(out, x=x[perm], y=y[perm])
+    np.savez_compressed(out, x=x[perm], y=y[perm], src=src[perm])
     print("total", len(y))
 
 

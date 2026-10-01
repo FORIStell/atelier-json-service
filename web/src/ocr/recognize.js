@@ -30,8 +30,9 @@ export function recognizeMask(mask, w, h, model) {
 
   let items = mergeStacked(comps.map((c) => mkItem([c])), ctx);
   items.forEach((it) => classify(it, ctx));
+  items = items.flatMap((it) => splitTouching(it, ctx, 0));
   items = findStructures(items, ctx);
-  const lines = splitLines(items);
+  const lines = splitLines(items, medH);
   return {
     lines: lines.map((ln) => postProcess(lineTokens(ln, ctx))).filter((s) => s.trim()),
     items: flatItems(items),
@@ -40,13 +41,13 @@ export function recognizeMask(mask, w, h, model) {
 
 const isFlat = (c, medH) => c.h < 0.4 * c.w && c.h < 0.45 * medH;
 const isBarLike = (c, medH) => c.h < 0.7 * c.w && c.h < 0.45 * medH;
-const isDot = (c, medH) => Math.max(c.w, c.h) < 0.32 * medH && c.w < 2.5 * c.h && c.h < 2.5 * c.w;
+const isDot = (c, medH) => Math.max(c.w, c.h) < 0.3 * medH && c.w < 1.7 * c.h && c.h < 2.5 * c.w;
 
 function classify(it, ctx) {
   if (it.label) return;
   const { medH } = ctx;
   if (isDot(it, medH) && it.parts.length === 1) { it.label = '.'; it.probs = null; return; }
-  if (isFlat(it, medH) && it.parts.length === 1) { it.label = '-'; it.probs = null; return; }
+  if ((isFlat(it, medH) || (it.w > 1.6 * it.h && it.h < 0.3 * medH)) && it.parts.length === 1) { it.label = '-'; it.probs = null; return; }
   const p = ctx.model.predict(symbolImage(it.parts, ctx.w));
   const order = [...p.keys()].sort((a, b) => p[b] - p[a]);
   it.probs = p;
@@ -54,6 +55,36 @@ function classify(it, ctx) {
   it.label = it.top[0][0];
 }
 const prob = (it, ch, ctx) => { if (!it.probs) return it.label === ch ? 1 : 0; const k = ctx.model.classes.indexOf(ch); return k < 0 ? 0 : it.probs[k]; };
+
+// Two symbols written so close that they touch: try cutting at the thinnest column
+function splitTouching(it, ctx, depth) {
+  if (depth > 2 || it.parts.length !== 1 || !it.top || it.w < 1.15 * it.h || it.h < 0.5 * ctx.medH) return [it];
+  const conf = it.top[0][1];
+  if (conf > 0.9) return [it];
+  const c = it.parts[0], w = ctx.w;
+  const cols = new Array(c.w).fill(0);
+  for (const i of c.px) cols[(i % w) - c.x0]++;
+  let best = null;
+  for (let x = Math.floor(c.w * 0.25); x <= Math.ceil(c.w * 0.75); x++) {
+    const v = cols[x] + 0.5 * ((cols[x - 1] || 0) + (cols[x + 1] || 0));
+    if (!best || v < best.v) best = { x, v };
+  }
+  if (!best) return [it];
+  const cut = c.x0 + best.x;
+  const mk = (px) => {
+    let x0 = Infinity, y0 = Infinity, x1 = -1, y1 = -1;
+    for (const i of px) { const x = i % w, y = (i / w) | 0; if (x < x0) x0 = x; if (x > x1) x1 = x; if (y < y0) y0 = y; if (y > y1) y1 = y; }
+    return { x0, y0, x1: x1 + 1, y1: y1 + 1, w: x1 + 1 - x0, h: y1 + 1 - y0, area: px.length, px };
+  };
+  const L = c.px.filter((i) => i % w < cut), R = c.px.filter((i) => i % w >= cut);
+  if (L.length < 0.15 * c.area || R.length < 0.15 * c.area) return [it];
+  const a = mkItem([mk(L)]), b = mkItem([mk(R)]);
+  if (a.h < 0.3 * it.h || b.h < 0.3 * it.h) return [it];
+  classify(a, ctx); classify(b, ctx);
+  const pa = a.top ? a.top[0][1] : 0.6, pb = b.top ? b.top[0][1] : 0.6;
+  if (Math.min(pa, pb) > conf + 0.15 && Math.min(pa, pb) > 0.6) return [...splitTouching(a, ctx, depth + 1), ...splitTouching(b, ctx, depth + 1)];
+  return [it];
+}
 
 // Merge parts of symbols that are written as several strokes stacked vertically.
 function mergeStacked(items, ctx) {
@@ -68,6 +99,15 @@ function mergeStacked(items, ctx) {
       if (j === i || used.has(j)) continue;
       const o = items[j];
       const xo = xOverlap(cur, o);
+      {
+        const bar = isBarLike(cur, medH) ? cur : isBarLike(o, medH) ? o : null, body = bar === cur ? o : cur;
+        if (bar && body !== bar && !isBarLike(body, medH) && !isDot(body, medH) && xo > 0.3 * bar.w && bar.w < 1.2 * body.w) {
+          const g = Math.max(bar.y0, body.y0) - Math.min(bar.y1, body.y1);
+          if (g < 0.06 * medH && bar.cy < body.y0 + 0.35 * body.h) {
+            used.add(j); cur = mkItem([...cur.parts, ...o.parts]); continue;
+          }
+        }
+      }
       if (xo < 0.45 * Math.min(cur.w, o.w)) continue;
       if (yOverlap(cur, o) > 0.25 * Math.min(cur.h, o.h)) continue;
       const gap = Math.max(cur.y0, o.y0) - Math.min(cur.y1, o.y1);
@@ -135,18 +175,15 @@ function findStructures(items, ctx) {
   return items;
 }
 
-function splitLines(items) {
-  const sorted = items.slice().sort((a, b) => a.cy - b.cy);
+// Lines = groups separated by empty horizontal bands (projection profile)
+function splitLines(items, medH) {
+  const sorted = items.slice().sort((a, b) => a.y0 - b.y0);
   const lines = [];
   for (const it of sorted) {
-    const ln = lines.find((l) => {
-      const pad = 0.3 * (l.y1 - l.y0);
-      return Math.min(l.y1 + pad, it.y1) - Math.max(l.y0 - pad, it.y0) > 0.2 * Math.min(it.h, l.y1 - l.y0);
-    });
-    if (ln) { ln.items.push(it); ln.y0 = Math.min(ln.y0, it.y0); ln.y1 = Math.max(ln.y1, it.y1); }
+    const last = lines[lines.length - 1];
+    if (last && it.y0 < last.y1 + 0.5 * medH) { last.items.push(it); last.y1 = Math.max(last.y1, it.y1); }
     else lines.push({ items: [it], y0: it.y0, y1: it.y1 });
   }
-  lines.sort((a, b) => a.y0 - b.y0);
   return lines.map((l) => l.items);
 }
 
@@ -160,10 +197,14 @@ function lineTokens(items, ctx) {
     const it = items[i];
     // superscript: raised and smaller than the symbol before it
     const OPS = '=+-×÷<>≤≥.·';
+    const bodyH = base && 'gpqy'.includes(base.label) ? 0.62 * base.h : base ? base.h : 0;
     const raisedLimit = base && base.kind ? 0.35 : 0.5;
-    if (base && isBaseItem(base) && !OPS.includes(it.label) && !isBarLike(it, medH) && it.y1 <= base.y0 + raisedLimit * base.h + 0.1 * it.h && it.cy < base.y0 + 0.3 * base.h && it.h < 1.3 * base.h) {
+    if (base && isBaseItem(base) && !OPS.includes(it.label) && !isBarLike(it, medH) && it.y1 <= base.y0 + raisedLimit * bodyH + 0.1 * it.h && it.cy < base.y0 + 0.3 * bodyH && it.h < 1.3 * bodyH) {
       const group = [it];
-      while (i + 1 < items.length && items[i + 1].cy < base.y0 + 0.3 * base.h && items[i + 1].y1 <= base.y0 + (raisedLimit + 0.15) * base.h) group.push(items[++i]);
+      const raised = (o) => o && o.cy < base.y0 + 0.3 * bodyH && o.y1 <= base.y0 + (raisedLimit + 0.15) * bodyH;
+      // operators continue an exponent only when clearly high up and followed by more raised symbols (x^(n-1))
+      const opRaised = (o) => o.cy < Math.min(base.y0 + 0.1 * bodyH, it.y1) && o.cy > it.y0 - 0.2 * it.h;
+      while (i + 1 < items.length && raised(items[i + 1]) && (!OPS.includes(items[i + 1].label) || (opRaised(items[i + 1]) && raised(items[i + 2])))) group.push(items[++i]);
       const inner = lineTokens(group, { ...ctx, medH: Math.max(4, median(group.map((g) => g.h))) });
       if (base.label === '∫') toks.push({ t: '^', sup: inner });
       else toks.push({ t: '^', sup: inner });
@@ -178,7 +219,10 @@ function lineTokens(items, ctx) {
     }
     if (it.kind === 'frac') toks.push({ t: 'frac', num: lineTokens(it.num, ctx), den: lineTokens(it.den, ctx) });
     else if (it.kind === 'sqrt') toks.push({ t: 'sqrt', inner: lineTokens(it.inner, ctx) });
-    else if (it.label === '.') toks.push({ t: it.cy < (base ? base.y0 + 0.7 * base.h : Infinity) ? '·' : '.', it });
+    else if (it.label === '.') {
+      const mid = it.cy < (base ? base.y0 + 0.7 * base.h : Infinity);
+      toks.push({ t: !mid ? '.' : it.w >= 1.2 * it.h ? '-' : '·', it });
+    }
     else toks.push({ t: it.label, it });
     if (!(it.label === '.' || it.label === '-')) base = it;
   }
@@ -194,10 +238,43 @@ function render(toks) {
   // letter / digit context fixes on the flat token list
   const t = toks.map((x) => ({ ...x }));
   const isDig = (x) => x && DIGITS.has(x.t);
+  // a "(" or ")" without a partner, written next to digits, is usually a 1
+  {
+    let depth = 0; const opens = [];
+    const unmatched = new Set();
+    t.forEach((x, i) => { if (x.t === '(') opens.push(i); else if (x.t === ')') { if (opens.length) opens.pop(); else unmatched.add(i); } });
+    opens.forEach((i) => unmatched.add(i));
+    for (const i of unmatched) { if ((isDig(t[i - 1]) || isDig(t[i + 1])) && t[i].it) t[i].t = '1'; }
+    void depth;
+  }
+  // function names: look for sin, cos, tan, log, ln, lim, sqrt using top-3 guesses
+  for (let i = 0; i < t.length; i++) {
+    for (const w of WORDS) {
+      if (i + w.length > t.length) continue;
+      let ok = true;
+      for (let k = 0; k < w.length; k++) {
+        const x = t[i + k];
+        if (!x.it || !(x.t === w[k] || (x.it.top && x.it.top.slice(0, 3).some(([c, p]) => c === w[k] && p > 0.08)))) { ok = false; break; }
+      }
+      if (ok) { for (let k = 0; k < w.length; k++) { t[i + k].t = w[k]; t[i + k].inW = true; } t[i].wordStart = w; i += w.length - 1; break; }
+    }
+  }
+  // fuzzy: 2 of 3 letters right and followed by an argument, e.g. "co5(x)" -> cos(x)
+  const LOOK = { s: '5o∫', o: '0ac', n: 'mhr', i: '1l|', c: '(e', t: '+f', a: 'o', g: '9y', l: '1|i', e: 'c' };
+  for (let i = 0; i + 3 <= t.length; i++) {
+    if (t[i].wordStart || t[i + 1].wordStart || t[i + 2].wordStart || !t[i].it) continue;
+    const nxt = t[i + 3];
+    if (!nxt || !(nxt.t === '(' || nxt.t === 'θ' || nxt.t === 'π' || LETTERS.has(nxt.t) || nxt.t === '^')) continue;
+    for (const w of ['sin', 'cos', 'tan', 'log', 'sec', 'cot']) {
+      let match = 0, near = 0;
+      for (let k = 0; k < 3; k++) { const x = t[i + k]; if (x.t === w[k]) match++; else if ((LOOK[w[k]] || '').includes(x.t) || (x.it && x.it.top && x.it.top.some(([c]) => c === w[k]))) near++; }
+      if (match === 2 && near === 1) { for (let k = 0; k < 3; k++) { t[i + k].t = w[k]; t[i + k].inW = true; } t[i].wordStart = w; break; }
+    }
+  }
   for (let pass = 0; pass < 2; pass++) {
     for (let i = 0; i < t.length; i++) {
       const x = t[i];
-      if (!x.it || !x.it.top) continue;
+      if (!x.it || !x.it.top || x.inW) continue;
       const prev = t[i - 1], next = t[i + 1];
       if (TO_DIGIT[x.t] && (isDig(prev) || isDig(next)) && !inWord(t, i)) {
         const d = TO_DIGIT[x.t];
@@ -212,28 +289,16 @@ function render(toks) {
   for (let i = 0; i < t.length; i++) {
     const x = t[i];
     if ((x.t === '|' && bars < 2) || (x.t === 'l' && !inWord(t, i))) x.t = '1';
-    if (x.t === '/' && t.length === 1) x.t = '1';
-  }
-  // function names: look for sin, cos, tan, log, ln, lim, sqrt using top-3 guesses
-  for (let i = 0; i < t.length; i++) {
-    for (const w of WORDS) {
-      if (i + w.length > t.length) continue;
-      let ok = true;
-      for (let k = 0; k < w.length; k++) {
-        const x = t[i + k];
-        if (!x.it || !(x.t === w[k] || (x.it.top && x.it.top.slice(0, 3).some(([c, p]) => c === w[k] && p > 0.08)))) { ok = false; break; }
-      }
-      if (ok) { for (let k = 0; k < w.length; k++) t[i + k].t = w[k]; t[i].wordStart = w; i += w.length - 1; break; }
-    }
+    if (x.t === '/' && (t.length === 1 || i === 0 || /^[-+=×÷<>≤≥(]$/.test(t[i - 1].t))) x.t = '1';
   }
   // × or x ?
   const letters = t.filter((x) => LETTERS.has(x.t) && x.t !== 'x').length;
-  for (let i = 0; i < t.length; i++) {
-    if (t[i].t !== 'x' && t[i].t !== '×') continue;
-    const prev = t[i - 1], next = t[i + 1];
-    const numericBoth = prev && next && (isDig(prev) || prev.t === ')' || prev.t === 'frac') && (isDig(next) || next.t === '(' || next.t === 'frac');
-    const anyX = t.some((y, j) => j !== i && (y.t === 'x'));
-    t[i].t = numericBoth && !anyX && letters === 0 && !t.some((y) => y.t === '=' ) ? '×' : (numericBoth && t[i].t === '×' ? '×' : 'x');
+  const between = (i) => { const prev = t[i - 1], next = t[i + 1]; return prev && next && (isDig(prev) || prev.t === ')' || prev.t === 'frac') && (isDig(next) || next.t === '(' || next.t === 'frac'); };
+  const xs = t.map((x, i) => (x.t === 'x' || x.t === '×' ? i : -1)).filter((i) => i >= 0);
+  const allBetween = xs.length > 0 && xs.every(between);
+  for (const i of xs) {
+    const strongTimes = t[i].it && t[i].it.top && t[i].it.top.some(([c, p]) => c === '×' && p > 0.5);
+    t[i].t = between(i) && (allBetween && letters === 0 || strongTimes) ? '×' : 'x';
   }
   let out = '';
   for (let i = 0; i < t.length; i++) {

@@ -39,7 +39,7 @@ Each answer comes with explanations of the rule used at every step (e.g. "Subtra
   Turn it on once in **Settings → Pages → Source: GitHub Actions**. The app will be at `https://<user>.github.io/<repo>/`.
 * **Install on iPhone:** open the link in Safari → Share → **Add to Home Screen**.
 * **Install on PC:** open the link in Chrome/Edge → install icon in the address bar.
-* **Run locally:** `npm start`, then open http://localhost:8000.
+* **Run on your PC:** install [Python 3](https://www.python.org/downloads/), then in the project folder run `python run.py` (or double-click `run.py`). It opens http://localhost:8000 in your browser. Use `python run.py --lan` to also open it from your phone on the same Wi-Fi (camera needs the https link, everything else works).
 
 ## How it works
 

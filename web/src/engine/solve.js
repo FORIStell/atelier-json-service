@@ -518,6 +518,66 @@ function solveSpecial(lhs, rhs, v, steps, depth) {
         return solveTrig(T, r, v, steps, depth);
       }
     }
+    const tr = solveTrigIdentities(f, v, steps, depth);
+    if (tr) return tr;
+  }
+  return null;
+}
+
+// sin(2x) = sin(x), sin x = cos x, 2 sin x cos x - cos x = 0 ...
+function solveTrigIdentities(f, v, steps, depth) {
+  if (depth > 3) return null;
+  const X = sym(v), sinX = fn('sin', X), cosX = fn('cos', X);
+  // 1) double angles: sin(2x) = 2 sin x cos x, cos(2x) = 1 - 2 sin²x or 2 cos²x - 1
+  const twoX = S(mul(num(2), X));
+  const hasSin = findAll(f, (n) => n.t === 'fn' && n.n === 'sin' && equal(n.a[0], X)).length > 0;
+  let g = f, changed = false;
+  g = map(g, (n) => {
+    if (n.t === 'fn' && n.n === 'sin' && equal(n.a[0], twoX)) { changed = true; return mul(num(2), sinX, cosX); }
+    if (n.t === 'fn' && n.n === 'cos' && equal(n.a[0], twoX)) { changed = true; return hasSin ? sub(ONE, mul(num(2), pow(sinX, num(2)))) : sub(mul(num(2), pow(cosX, num(2))), ONE); }
+    return n;
+  });
+  if (changed) {
+    g = S(expand(g));
+    steps.push({ title: 'Use the double-angle formulas $\\sin 2x = 2\\sin x\\cos x$, $\\cos 2x = 1 - 2\\sin^2 x = 2\\cos^2 x - 1$', math: eqTex(g, ZERO) });
+    return solveEquation(g, ZERO, v, steps, depth + 1);
+  }
+  // 2) a common factor sin x or cos x: zero product
+  const terms = f.t === 'add' ? f.a : [f];
+  for (const T of [sinX, cosX]) {
+    const divides = (t) => { const q = S(div(t, T)); return !findAll(q, (n) => n.t === 'pow' && equal(n.b, T) && n.e.t === 'num' && nvSign(n.e.v) < 0).length && !(q.t === 'pow' && equal(q.b, T)); };
+    if (terms.length > 1 && terms.every((t) => findAll(t, (n) => equal(n, T)).length && divides(t))) {
+      const rest = S(expand(div(f, T)));
+      steps.push({ title: `Take out the common factor $${tex(T)}$`, math: `${tex(T)}\\left(${tex(rest)}\\right) = 0` });
+      steps.push({ title: 'Zero product: one of the factors is 0' });
+      const a = solveEquation(T, ZERO, v, steps, depth + 1);
+      const b = solveEquation(rest, ZERO, v, steps, depth + 1);
+      const general = [...(a.general || []), ...(b.general || [])];
+      const sols = sortNodes(dedupe([...(a.solutions || []), ...(b.solutions || [])]));
+      return { solutions: sols, general: general.length ? general : undefined };
+    }
+  }
+  // 3) a sin x + b cos x = 0  ->  tan x = -b/a
+  const co = (T) => { const c = S(expand(subst(map(f, (n) => (equal(n, T) ? sym('□') : n)), '□', ONE))); return c; };
+  if (terms.length === 2) {
+    const [c0, r0] = coeffSplit(terms[0]), [c1, r1] = coeffSplit(terms[1]);
+    const pick = (r, T) => r && equal(r, T);
+    let a = null, b = null;
+    if (pick(r0, sinX) && pick(r1, cosX)) { a = c0; b = c1; } else if (pick(r1, sinX) && pick(r0, cosX)) { a = c1; b = c0; }
+    if (a !== null && isQ(a) && isQ(b)) {
+      const r = S(num(b.neg().div(a)));
+      steps.push({ title: 'Divide by $\\cos x$ (it can’t be 0 here): $\\frac{\\sin x}{\\cos x} = \\tan x$', math: `\\tan ${v} = ${tex(r)}` });
+      return solveTrig(fn('tan', X), r, v, steps, depth);
+    }
+  }
+  void co;
+  return null;
+}
+// x ≈ 1.0471975512 -> π/3
+function piMultiple(r) {
+  for (let d = 1; d <= 24; d++) {
+    const p = Math.round((r * d) / Math.PI);
+    if (Math.abs(r - (p * Math.PI) / d) < 1e-9) return S(mul(num(new Q(BigInt(p), BigInt(d))), PI));
   }
   return null;
 }
@@ -607,7 +667,7 @@ function solveTrig(T, r, v, steps, depth) {
     if (equal(inner, sym(v))) { general.push(g); continue; }
     const st = [];
     const res = solveEquation(inner, g, v, st, depth + 1);
-    general.push(...res.solutions);
+    general.push(...res.solutions.map((x) => S(expand(x)))); // π/18 + 2πk/3 rather than (12πk + π)/18
   }
   if (!equal(inner, sym(v))) steps.push({ title: `Solve for $${v}$`, math: general.map((g) => `${v} = ${tex(g)}`).join(' \\quad\\text{or}\\quad ') });
   // particular solutions in [0, 2pi)
@@ -621,11 +681,61 @@ function solveTrig(T, r, v, steps, depth) {
   return { solutions: parts, general };
 }
 
+// trig equations whose pattern repeats every 2π: find the roots in one turn, recognise them as multiples of π
+function periodicSolve(f, v, steps) {
+  let periodic = true;
+  map(f, (n) => {
+    if (n.t === 'sym' && n.n === v) return n;
+    return n;
+  });
+  // every occurrence of v must sit inside sin/cos/tan of (integer)·v
+  (function walk(x, inTrig) {
+    if (!periodic) return;
+    if (x.t === 'fn' && ['sin', 'cos', 'tan', 'sec', 'csc', 'cot'].includes(x.n)) {
+      const c = polyCoeffs(x.a[0], v);
+      if (has(x.a[0], v) && !(c && c.length === 2 && isNum(c[0], 0) && c[1].t === 'num' && isQ(c[1].v) && c[1].v.isInt())) periodic = false;
+      return;
+    }
+    if (x.t === 'sym' && x.n === v && !inTrig) { periodic = false; return; }
+    for (const k of ['a', 'b', 'e']) if (x[k]) (Array.isArray(x[k]) ? x[k] : [x[k]]).forEach((c) => walk(c, inTrig));
+  })(f, false);
+  if (!periodic || !has(f, v)) return null;
+  const F = (x) => { try { return evalNum(f, { [v]: x }); } catch { return NaN; } };
+  const N = 7200, roots = [];
+  const P2 = 2 * Math.PI;
+  let prev = F(0);
+  for (let i = 1; i <= N; i++) {
+    const a = (P2 * (i - 1)) / N, b = (P2 * i) / N, fa = prev, fb = F(b);
+    prev = fb;
+    let cand = null;
+    if (Number.isFinite(fa) && Number.isFinite(fb)) {
+      if (fa === 0) cand = a;
+      else if (fa * fb < 0) { let lo = a, hi = b, flo = fa; for (let k = 0; k < 100; k++) { const m = (lo + hi) / 2, fm = F(m); if (flo * fm <= 0) hi = m; else { lo = m; flo = fm; } } cand = (lo + hi) / 2; }
+      else { const m = (a + b) / 2; if (Math.abs(F(m)) < 1e-6 && Math.abs(F(m)) <= Math.abs(fa) && Math.abs(F(m)) <= Math.abs(fb)) { let lo = a, hi = b; for (let k = 0; k < 100; k++) { const m1 = lo + (hi - lo) / 3, m2 = hi - (hi - lo) / 3; if (Math.abs(F(m1)) < Math.abs(F(m2))) hi = m2; else lo = m1; } cand = (lo + hi) / 2; } }
+    }
+    if (cand === null) continue;
+    const ex = piMultiple(cand);
+    const val = ex ? evalNum(ex) : cand;
+    if (Math.abs(F(val)) > 1e-7) continue;
+    const r = ((val % P2) + P2) % P2;
+    if (!roots.some((q) => Math.abs(q.x - r) < 1e-7 || Math.abs(Math.abs(q.x - r) - P2) < 1e-7)) roots.push({ x: r, node: ex ? S(num(0)).t && piMultiple(r) : null });
+  }
+  if (!roots.length) return null;
+  roots.sort((a, b) => a.x - b.x);
+  const k = sym('k');
+  const sols = roots.map((r) => r.node || num(Number(r.x.toPrecision(10))));
+  steps.push({ title: 'The equation repeats every $2\\pi$: find all solutions in one full turn $[0, 2\\pi)$', detail: `\\text{Graph } f(${v}) = ${tex(f)} \\text{ on } [0, 2\\pi) \\text{ and find where it is } 0`, math: sols.map((s) => `${v} = ${tex(s)}`).join(',\\quad ') });
+  steps.push({ title: 'Add whole turns $2\\pi k$ to get every solution' });
+  return { solutions: sols, general: sols.map((s) => S(add(s, mul(num(2), PI, k)))), approximate: roots.some((r) => !r.node) };
+}
+
 // ---------------------------------------------------------------------------
 // Numeric fallback
 // ---------------------------------------------------------------------------
 export function solveNumeric(lhs, rhs, v, steps) {
   const f = S(sub(lhs, rhs));
+  const per = periodicSolve(f, v, steps);
+  if (per) return per;
   const F = (x) => { try { return evalNum(f, { [v]: x }); } catch { return NaN; } };
   const roots = [];
   const scan = (a, b, n) => {

@@ -104,7 +104,11 @@ const TEST = [
   ['en', 'The sum of two numbers is 40 and their difference is 10. Find the numbers.', [25, 15]],
   ['en', 'A rectangle has length 7 and width 3. Find its area and perimeter.', [21, 20]],
   ['en', 'Find the area of a circle with radius 6', [36 * Math.PI]],
-];const P = process.argv.includes('--test') ? TEST : DEV;
+];
+let P = process.argv.includes('--test') ? TEST : DEV;
+// --ocr read.json: the same problems as the text reader read them from pictures
+const oi = process.argv.indexOf('--ocr');
+if (oi > 0) { const read = JSON.parse((await import('fs')).readFileSync(process.argv[oi + 1], 'utf8')); P = P.map(([l, q, e], i) => [l, read[i] ?? q, e]); }
 
 function numsIn(t) {
   const out = [];

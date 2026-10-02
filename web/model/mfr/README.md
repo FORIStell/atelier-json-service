@@ -4,7 +4,8 @@
 (https://huggingface.co/breezedeus/pix2text-mfr-1.5), MIT license.
 
 We fine-tuned it on real handwriting (CROHME train + 2014 + 2016 tablet writing and CROHME 2023 paper scans,
-rows < 2900), with photo-style augmentation; the last 4 encoder layers and the decoder were trained
+rows < 2900), with photo-style augmentation, in two rounds: first the last 4 encoder layers and the decoder,
+then the last 8 encoder layers and the decoder on new augmentations
 (`training/finetune_data.py`, `training/finetune_mfr.py`). The weights were then dynamically quantized to
 8-bit (`onnxruntime.quantization.quantize_dynamic`, QUInt8) to shrink them from 120 MB to 32 MB
 (`training/export_mfr.py`).

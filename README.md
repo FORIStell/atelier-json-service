@@ -81,9 +81,9 @@ Measured on real handwritten school-level problems that were never used for trai
 
 | Test set | Fast reader | Before fine-tuning | **Now** | Right answer in the top 3 ("Did you mean…?") |
 |---|---|---|---|---|
-| CROHME 2019, 200 problems (handwriting drawn on tablets) | 42% | 70% | **91.5%** | 96.5% |
-| CROHME 2023, 196 problems (handwriting scanned on lined paper, rows never trained on) | 25% | 57% | **76%** | 85% |
-| CROHME 2019, 200 university-level formulas (∫, Σ, lim, trig, logs, Greek letters) | 18% | – | **69%** | 82% |
+| CROHME 2019, 200 problems (handwriting drawn on tablets) | 42% | 70% | **95.5%** | 99.5% |
+| CROHME 2023, 196 problems (handwriting scanned on lined paper, rows never trained on) | 25% | 57% | **80%** | 90% |
+| CROHME 2019, 200 university-level formulas (∫, Σ, lim, trig, logs, Greek letters) | 18% | – | **73%** | 85% |
 | Printed problems (synthetic photos) | 100% | – | – | – |
 
 Some test formulas also appear in the training data (written by other people). On only the formulas it never saw, the reader gets 94% (tablet) and 69% (paper), up from 76% and 49%.

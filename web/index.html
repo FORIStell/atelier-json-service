@@ -55,6 +55,31 @@
       <span class="cross"></span>
     </div>
     <p id="camMsg" class="cam-msg" hidden></p>
+    <!-- circle the problem on a pasted screenshot / shared screen / photo -->
+    <canvas id="lasso" class="lasso" hidden></canvas>
+
+    <!-- PC start panel: screen share, paste, drop, webcam -->
+    <div id="deskStart" class="desk-start" hidden>
+      <h2>Solve anything on your screen</h2>
+      <p>Share your screen or paste a screenshot, then <b>circle the problem</b> with the mouse.</p>
+      <div class="desk-actions">
+        <button class="btn primary" id="shareBtn">
+          <svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="12" rx="2"/><path d="M8 20h8M12 16v4"/></svg>Share screen
+        </button>
+        <button class="btn" id="pasteBtn">
+          <svg viewBox="0 0 24 24"><rect x="6" y="4" width="12" height="17" rx="2"/><path d="M9 4V3h6v1"/></svg>Paste screenshot
+        </button>
+        <label class="btn">
+          <input id="fileInput2" type="file" accept="image/*" hidden>
+          <svg viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="14" rx="2.5"/><circle cx="9" cy="10" r="1.6"/><path d="M4 17l5-4.5 3.5 3 3-2.5L20 17"/></svg>Open image
+        </label>
+        <button class="btn" id="webcamBtn">
+          <svg viewBox="0 0 24 24"><circle cx="12" cy="11" r="6"/><circle cx="12" cy="11" r="2"/><path d="M8 21h8"/></svg>Use webcam
+        </button>
+      </div>
+      <p class="desk-tip"><kbd>Ctrl</kbd> + <kbd>V</kbd> pastes a screenshot · you can also drop an image here<br><kbd>Win</kbd> + <kbd>Shift</kbd> + <kbd>S</kbd> (Windows) or <kbd>⌘</kbd> + <kbd>Shift</kbd> + <kbd>4</kbd> (Mac) takes one</p>
+    </div>
+    <div id="dropHint" class="drop-hint" hidden>Drop the image</div>
 
     <div class="home-bottom">
       <p class="home-hint" id="homeHint">Take a picture of a math problem</p>
@@ -74,6 +99,9 @@
           <input id="fileInput" type="file" accept="image/*" hidden>
           <svg viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="14" rx="2.5"/><circle cx="9" cy="10" r="1.6"/><path d="M4 17l5-4.5 3.5 3 3-2.5L20 17"/></svg>
         </label>
+        <button class="tool-btn" id="shareBtn2" aria-label="Share screen" hidden>
+          <svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="12" rx="2"/><path d="M8 20h8M12 16v4"/></svg>
+        </button>
         <button class="tool-btn" id="torchBtn" aria-label="Flash" hidden>
           <svg viewBox="0 0 24 24"><path d="M13 3L6 13.5h5L10 21l8-11h-5z"/></svg>
         </button>
@@ -184,6 +212,8 @@
       <h2>Tips</h2>
       <ul>
         <li>Fit <b>one</b> problem inside the frame. Drag the corners to resize it.</li>
+        <li>On a picture, screenshot or shared screen: <b>circle the problem</b> you want solved.</li>
+        <li>On a computer: press <b>Ctrl+V</b> to paste a screenshot, or share your screen.</li>
         <li>Use dark ink on light paper and good light. Hold the phone flat above the page.</li>
         <li>Check what was read: tap <b>Edit</b> on the solution to fix any symbol.</li>
         <li>The calculator has templates for fractions, powers, roots, logs, limits, derivatives, integrals and sums. Hold a key with a red dot for more options.</li>

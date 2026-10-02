@@ -66,7 +66,7 @@ svg { width: 24px; height: 24px; fill: none; stroke: currentColor; stroke-width:
 .cross::after { top: 50%; left: 0; right: 0; height: 1.5px; transform: translateY(-50%); }
 .cam-msg { position: absolute; left: 24px; right: 24px; top: 50%; transform: translateY(-50%); text-align: center; color: #ddd; z-index: 2; font-size: .95rem; }
 .home-bottom { position: absolute; left: 0; right: 0; bottom: 0; padding: 0 16px calc(var(--safe-b) + 16px); z-index: 3; }
-.home-hint { text-align: center; font-weight: 600; margin: 0 0 22px; text-shadow: 0 1px 4px #000; }
+.home-hint { width: fit-content; margin: 0 auto 22px; padding: 6px 14px; border-radius: 999px; background: #000a; text-align: center; font-weight: 600; text-shadow: 0 1px 4px #000; }
 .shutter-row { display: grid; grid-template-columns: 1fr auto 1fr; align-items: center; }
 .side-btn { display: flex; flex-direction: column; align-items: center; gap: 6px; color: #fff; font-size: .9rem; font-weight: 500; justify-self: center; }
 .side-btn svg { width: 34px; height: 34px; }
@@ -191,3 +191,29 @@ math-field::part(virtual-keyboard-toggle), math-field::part(menu-toggle) { displ
 .recog-lines button { text-align: left; border: 1.5px solid var(--line); border-radius: 12px; padding: 12px; overflow-x: auto; }
 .katex { font-size: 1.06em; }
 .katex-display { margin: .2em 0; }
+
+/* ---------------- circle the problem ---------------- */
+.lasso { position: absolute; inset: 0; width: 100%; height: 100%; z-index: 2; touch-action: none; cursor: crosshair; }
+.drop-hint { position: absolute; inset: 12px; z-index: 60; border: 3px dashed var(--accent); border-radius: 18px; display: grid; place-items: center; color: #fff; font-size: 1.4rem; font-weight: 700; background: #000a; pointer-events: none; }
+
+/* ---------------- PC start panel ---------------- */
+.desk-start { position: absolute; inset: 0; z-index: 2; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 6px; padding: 32px; text-align: center; color: #eee; background: radial-gradient(circle at 50% 40%, #241517, #0b0a0a 70%); }
+.desk-start h2 { margin: 0; font-size: 1.7rem; }
+.desk-start p { margin: 4px 0; color: #bbb; max-width: 520px; }
+.desk-actions { display: grid; grid-template-columns: repeat(2, minmax(190px, 1fr)); gap: 12px; margin: 22px 0 14px; }
+.desk-actions .btn { display: flex; align-items: center; justify-content: center; gap: 10px; padding: 14px 18px; border-radius: 14px; background: #ffffff14; color: #fff; font-weight: 600; cursor: pointer; border: 1px solid #ffffff22; }
+.desk-actions .btn.primary { background: var(--accent); border-color: var(--accent); }
+.desk-actions .btn:hover { filter: brightness(1.15); }
+.desk-tip { font-size: .85rem; line-height: 1.9; }
+kbd { display: inline-block; padding: 0 6px; border-radius: 5px; border: 1px solid #ffffff40; background: #ffffff12; font: 600 .8rem/1.5 inherit; }
+
+/* ---------------- PC layout: picture on the left, calculator / solution on the right ---------------- */
+body.desk { --side: clamp(400px, 36vw, 560px); }
+body.desk #app { max-width: none; }
+body.desk .home { right: var(--side); }
+body.desk .sheet { left: auto; width: var(--side); top: 0; border-radius: 0; border-left: 1px solid var(--line); animation: none; }
+body.desk #calc [data-close], body.desk #openCalc { visibility: hidden; }
+body.desk .home .shade { background: linear-gradient(#0008, transparent 18%, transparent 75%, #000a); }
+body.desk .toast { left: calc((100% - var(--side)) / 2); }
+body.desk .menu-panel { max-width: 300px; }
+body.desk .kbd { max-width: 100%; }

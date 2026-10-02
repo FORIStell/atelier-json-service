@@ -28,9 +28,14 @@ function syncAngle() { $('angleLabel').textContent = degrees ? 'Degrees' : 'Radi
 
 // ================================================================ sheets
 const SHEETS = ['calc', 'result', 'write', 'history'];
+// PC: the picture / screen area is on the left and the calculator or solution stays open on the right
+const deskQuery = matchMedia('(min-width: 900px) and (pointer: fine)');
+let isDesk = deskQuery.matches;
+document.body.classList.toggle('desk', isDesk);
 function openSheet(id) {
+  if (!id && isDesk) id = 'calc';
   SHEETS.forEach((s) => { $(s).hidden = s !== id; });
-  if (id) stopCamera(); else startCamera();
+  if (!isDesk) { if (id) stopCamera(); else startCamera(); }
   if (id === 'calc') setTimeout(() => mf && mf.focus(), 50);
   if (id === 'write') requestAnimationFrame(sizePad);
   if (id === 'history') renderHistory();
@@ -56,7 +61,9 @@ document.querySelector('[data-close-modal]').addEventListener('click', () => { $
 // ================================================================ camera
 const video = $('video');
 let stream = null, torchOn = false, still = null;
+let webcamWanted = !isDesk; // on a PC the webcam starts only when asked for
 async function startCamera() {
+  if (!webcamWanted) { syncHome(); return; }
   if (still || stream || !navigator.mediaDevices?.getUserMedia) { if (!navigator.mediaDevices?.getUserMedia) camMessage('No camera here. Pick a photo below or use the calculator.'); return; }
   try {
     stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: { ideal: 'environment' }, width: { ideal: 1920 }, height: { ideal: 1080 } }, audio: false });
@@ -66,8 +73,10 @@ async function startCamera() {
     const track = stream.getVideoTracks()[0];
     const caps = track.getCapabilities ? track.getCapabilities() : {};
     $('torchBtn').hidden = !caps.torch;
+    syncHome();
   } catch (e) {
     stream = null;
+    syncHome();
     camMessage(e && e.name === 'NotAllowedError' ? 'Camera permission was denied. Allow it in settings, pick a photo below, or use the calculator.' : 'Camera not available. Pick a photo below or use the calculator.');
   }
 }
@@ -75,6 +84,18 @@ function stopCamera() {
   if (!stream) return;
   stream.getTracks().forEach((t) => t.stop());
   stream = null; video.srcObject = null; torchOn = false; $('torchBtn').classList.remove('on');
+  syncHome();
+}
+// what the left/home area shows: PC start panel, live camera with the frame, or a picture to circle on
+function syncHome() {
+  const idle = isDesk && !still && !stream;
+  $('deskStart').hidden = !idle;
+  frame.hidden = idle || !!still;
+  document.querySelector('.home-bottom').hidden = idle;
+  $('shareBtn2').hidden = !(isDesk && navigator.mediaDevices?.getDisplayMedia);
+  $('closeStillBtn').hidden = !(still || (isDesk && stream));
+  $('menuBtn').hidden = !$('closeStillBtn').hidden;
+  if (idle) camMessage('');
 }
 function camMessage(m) { $('camMsg').textContent = m; $('camMsg').hidden = !m; }
 $('torchBtn').addEventListener('click', async () => {
@@ -83,28 +104,152 @@ $('torchBtn').addEventListener('click', async () => {
   torchOn = !torchOn;
   try { await track.applyConstraints({ advanced: [{ torch: torchOn }] }); $('torchBtn').classList.toggle('on', torchOn); } catch { torchOn = false; }
 });
-document.addEventListener('visibilitychange', () => { if (document.hidden) stopCamera(); else if (SHEETS.every((s) => $(s).hidden)) startCamera(); });
+document.addEventListener('visibilitychange', () => { if (document.hidden) stopCamera(); else if (isDesk || SHEETS.every((s) => $(s).hidden)) startCamera(); });
+deskQuery.addEventListener('change', (e) => {
+  isDesk = e.matches;
+  document.body.classList.toggle('desk', isDesk);
+  if (isDesk && SHEETS.every((s) => $(s).hidden)) openSheet('calc');
+  syncHome();
+  if (still) sizeLasso();
+});
 
-// gallery picture -> show it in the viewfinder
-$('fileInput').addEventListener('change', (e) => {
-  const f = e.target.files[0];
-  e.target.value = '';
-  if (!f) return;
+// a picture (gallery, pasted screenshot, shared screen) -> show it and let the user circle the problem
+function showStill(url) {
   const img = $('still');
   img.onload = () => {
     still = img; stopCamera();
     img.hidden = false; video.hidden = true; camMessage('');
-    $('closeStillBtn').hidden = false; $('menuBtn').hidden = true;
-    $('homeHint').textContent = 'Move the frame over one problem, then tap the button';
+    $('homeHint').textContent = 'Circle the problem you want solved';
+    if (!isDesk) SHEETS.forEach((s) => { $(s).hidden = true; });
+    syncHome();
+    sizeLasso(); lasso.hidden = false;
   };
-  img.src = URL.createObjectURL(f);
+  img.onerror = () => toast('That picture could not be opened');
+  img.src = url;
+}
+for (const id of ['fileInput', 'fileInput2']) $(id).addEventListener('change', (e) => {
+  const f = e.target.files[0];
+  e.target.value = '';
+  if (f) showStill(URL.createObjectURL(f));
 });
 $('closeStillBtn').addEventListener('click', () => {
-  still = null; $('still').hidden = true; video.hidden = false;
-  $('closeStillBtn').hidden = true; $('menuBtn').hidden = false;
+  still = null; $('still').hidden = true; video.hidden = false; lasso.hidden = true;
   $('homeHint').textContent = 'Take a picture of a math problem';
+  if (isDesk) { webcamWanted = false; stopCamera(); }
+  syncHome();
   startCamera();
 });
+
+// paste a screenshot (Ctrl+V / ⌘V), or the Paste button
+document.addEventListener('paste', (e) => {
+  const item = [...(e.clipboardData?.items || [])].find((i) => i.type.startsWith('image/'));
+  if (!item) return; // plain text goes to the calculator as usual
+  e.preventDefault();
+  showStill(URL.createObjectURL(item.getAsFile()));
+});
+$('pasteBtn').addEventListener('click', async () => {
+  try {
+    for (const it of await navigator.clipboard.read()) {
+      const type = it.types.find((t) => t.startsWith('image/'));
+      if (type) { showStill(URL.createObjectURL(await it.getType(type))); return; }
+    }
+    toast('No picture on the clipboard. Take a screenshot first, then paste.');
+  } catch { toast('Press Ctrl+V (or ⌘V) to paste the screenshot'); }
+});
+// drop an image file anywhere
+let dragDepth = 0;
+window.addEventListener('dragenter', (e) => { if ([...(e.dataTransfer?.types || [])].includes('Files')) { dragDepth++; $('dropHint').hidden = false; } });
+window.addEventListener('dragleave', () => { if (--dragDepth <= 0) { dragDepth = 0; $('dropHint').hidden = true; } });
+window.addEventListener('dragover', (e) => e.preventDefault());
+window.addEventListener('drop', (e) => {
+  e.preventDefault(); dragDepth = 0; $('dropHint').hidden = true;
+  const f = [...(e.dataTransfer?.files || [])].find((x) => x.type.startsWith('image/'));
+  if (f) showStill(URL.createObjectURL(f));
+});
+// share the screen: take one picture of the chosen screen / window / tab
+async function shareScreen() {
+  if (!navigator.mediaDevices?.getDisplayMedia) { toast('This browser can’t share the screen. Paste a screenshot instead.'); return; }
+  let s;
+  try { s = await navigator.mediaDevices.getDisplayMedia({ video: true, audio: false }); } catch { return; }
+  try {
+    const v = document.createElement('video');
+    v.srcObject = s; v.muted = true; v.playsInline = true;
+    await v.play();
+    await new Promise((r) => setTimeout(r, 400));
+    const cv = document.createElement('canvas');
+    cv.width = v.videoWidth; cv.height = v.videoHeight;
+    cv.getContext('2d').drawImage(v, 0, 0);
+    cv.toBlob((b) => b && showStill(URL.createObjectURL(b)), 'image/png');
+  } finally { s.getTracks().forEach((t) => t.stop()); }
+}
+$('shareBtn').addEventListener('click', shareScreen);
+$('shareBtn2').addEventListener('click', shareScreen);
+$('webcamBtn').addEventListener('click', () => { webcamWanted = true; startCamera(); });
+
+// ---- circle the problem: draw a loop around it, then it is read and solved
+const lasso = $('lasso');
+let lpath = null;
+function sizeLasso() {
+  const r = $('home').getBoundingClientRect(), dpr = window.devicePixelRatio || 1;
+  lasso.width = Math.round(r.width * dpr); lasso.height = Math.round(r.height * dpr);
+  lasso.getContext('2d').setTransform(dpr, 0, 0, dpr, 0, 0);
+}
+window.addEventListener('resize', () => { if (still) sizeLasso(); });
+function lassoPoint(e) { const r = lasso.getBoundingClientRect(); return [e.clientX - r.left, e.clientY - r.top]; }
+function drawLasso(closed) {
+  const ctx = lasso.getContext('2d');
+  ctx.clearRect(0, 0, lasso.width, lasso.height);
+  if (!lpath || lpath.length < 2) return;
+  ctx.beginPath(); ctx.moveTo(...lpath[0]);
+  for (const p of lpath) ctx.lineTo(...p);
+  if (closed) { ctx.closePath(); ctx.fillStyle = 'rgba(224, 51, 74, .14)'; ctx.fill(); }
+  ctx.lineWidth = 3; ctx.lineJoin = ctx.lineCap = 'round';
+  ctx.strokeStyle = getComputedStyle(document.documentElement).getPropertyValue('--accent').trim() || '#e0334a';
+  ctx.stroke();
+}
+lasso.addEventListener('pointerdown', (e) => { lpath = [lassoPoint(e)]; lasso.setPointerCapture(e.pointerId); drawLasso(false); });
+lasso.addEventListener('pointermove', (e) => { if (!lpath) return; lpath.push(lassoPoint(e)); drawLasso(false); });
+lasso.addEventListener('pointerup', () => {
+  if (!lpath) return;
+  const path = lpath;
+  const xs = path.map((p) => p[0]), ys = path.map((p) => p[1]);
+  if (Math.max(...xs) - Math.min(...xs) < 14 || Math.max(...ys) - Math.min(...ys) < 10) { lpath = null; drawLasso(false); toast('Draw a circle around the problem'); return; }
+  drawLasso(true);
+  readCircled(path).finally(() => setTimeout(() => { lpath = null; drawLasso(false); }, 600));
+});
+lasso.addEventListener('pointercancel', () => { lpath = null; drawLasso(false); });
+// cut out what is inside the loop (outside -> background colour) and read it
+async function readCircled(path) {
+  const img = still, iw = img.naturalWidth, ih = img.naturalHeight;
+  const r = $('home').getBoundingClientRect();
+  const sc = Math.min(r.width / iw, r.height / ih), ox = (r.width - iw * sc) / 2, oy = (r.height - ih * sc) / 2;
+  const pts = path.map(([x, y]) => [(x - ox) / sc, (y - oy) / sc]);
+  let x0 = Math.max(0, Math.floor(Math.min(...pts.map((p) => p[0])))), y0 = Math.max(0, Math.floor(Math.min(...pts.map((p) => p[1]))));
+  const x1 = Math.min(iw, Math.ceil(Math.max(...pts.map((p) => p[0])))), y1 = Math.min(ih, Math.ceil(Math.max(...pts.map((p) => p[1]))));
+  const w = x1 - x0, h = y1 - y0;
+  if (w < 6 || h < 6) { toast('Circle the problem on the picture'); return; }
+  const cv = document.createElement('canvas');
+  cv.width = w; cv.height = h;
+  const ctx = cv.getContext('2d', { willReadFrequently: true });
+  ctx.drawImage(img, x0, y0, w, h, 0, 0, w, h);
+  // background colour = average colour along the loop
+  const d = ctx.getImageData(0, 0, w, h).data;
+  let R = 0, G = 0, B = 0, n = 0;
+  for (const [px, py] of pts) {
+    const xi = Math.round(px - x0), yi = Math.round(py - y0);
+    if (xi < 0 || yi < 0 || xi >= w || yi >= h) continue;
+    const k = 4 * (yi * w + xi); R += d[k]; G += d[k + 1]; B += d[k + 2]; n++;
+  }
+  const bg = n ? `rgb(${R / n | 0}, ${G / n | 0}, ${B / n | 0})` : '#fff';
+  const out = document.createElement('canvas');
+  out.width = w; out.height = h;
+  const o = out.getContext('2d');
+  o.fillStyle = bg; o.fillRect(0, 0, w, h);
+  o.save(); o.beginPath(); o.moveTo(pts[0][0] - x0, pts[0][1] - y0);
+  for (const [px, py] of pts) o.lineTo(px - x0, py - y0);
+  o.closePath(); o.clip(); o.drawImage(cv, 0, 0); o.restore();
+  await readImage(out, null, 'photo');
+}
 
 // resizable frame
 const frame = $('frame');
@@ -142,7 +287,7 @@ function frameCrop(srcW, srcH, contain) {
 }
 $('shutter').addEventListener('click', async () => {
   let src, crop;
-  if (still) { src = still; crop = frameCrop(still.naturalWidth, still.naturalHeight, true); }
+  if (still) { src = still; crop = { x: 0, y: 0, w: still.naturalWidth, h: still.naturalHeight }; } // the whole picture (or circle a part)
   else if (stream && video.videoWidth) {
     const cv = document.createElement('canvas');
     cv.width = video.videoWidth; cv.height = video.videoHeight;
@@ -150,6 +295,9 @@ $('shutter').addEventListener('click', async () => {
     src = cv; crop = frameCrop(cv.width, cv.height, false);
   } else { $('fileInput').click(); return; }
   if (crop.w < 10 || crop.h < 10) { toast('Move the frame over the problem'); return; }
+  await readImage(src, crop, 'photo');
+});
+async function readImage(src, crop, source) {
   busy(true, 'Reading the problem…');
   try {
     await nextFrame();
@@ -158,9 +306,9 @@ $('shutter').addEventListener('click', async () => {
     const out = recognizeMask(binarize(g, w, h), w, h, model);
     const lines = await readAccurately(g, w, h, out);
     busy(false);
-    useRecognized(lines, 'photo');
+    useRecognized(lines, source);
   } catch (e) { console.error(e); busy(false); toast('Could not read that: ' + e.message); }
-});
+}
 
 // ================================================================ OCR helpers
 let modelPromise = null;
@@ -235,11 +383,19 @@ async function readAccurately(g, w, h, out) {
   return lines;
 }
 // readings the engine understands, best first, without repeats that mean the same thing
+// "2) 3x - 7 = 5", "a. x + 1": drop a numbering label that was circled / photographed with the problem
+const LABEL = /^\s*[([]?(?:\d{1,2}|[a-hA-H])\s*[)\].:]\s*/;
+function dropLabel(t) {
+  if (!LABEL.test(t)) return t;
+  try { parse(t); return t; } catch { /* doesn't make sense with the label */ }
+  const u = t.replace(LABEL, '');
+  try { parse(u); return u; } catch { return t; }
+}
 function distinctReadings(latexList) {
   const seen = new Set(), res = [];
   for (const l of latexList) {
     let t;
-    try { t = latexToText(l); if (!t.trim() || /\(\s*\)/.test(t)) continue; const key = plainText(fromRaw(parse(t))).replace(/\s+/g, ''); if (seen.has(key)) continue; seen.add(key); } catch { continue; }
+    try { t = dropLabel(latexToText(l)); if (!t.trim() || /\(\s*\)/.test(t)) continue; const key = plainText(fromRaw(parse(t))).replace(/\s+/g, ''); if (seen.has(key)) continue; seen.add(key); } catch { continue; }
     res.push(t);
   }
   return res;
@@ -249,6 +405,7 @@ function syncAccurate() { const el = $('accurateLabel'); if (el) el.textContent 
 function useRecognized(lines, source) {
   if (!lines.length) { toast('I could not find any math. Try again closer, with more light.'); return; }
   const alts = lines.alts || [];
+  lines = lines.map(dropLabel);
   if (lines.length > 1 && lines.every((l) => l.includes('='))) { solveText(lines.join(', '), { source }); return; }
   if (lines.length === 1) { solveText(lines[0], { source, alts: alts[0] }); return; }
   // several lines: ask which one
@@ -653,6 +810,7 @@ syncAccurate();
 renderPad('basic');
 initMathField();
 startCamera();
+if (isDesk) openSheet('calc');
 if ('serviceWorker' in navigator && location.protocol !== 'file:') {
   window.addEventListener('load', () => navigator.serviceWorker.register('sw.js').catch(() => {}));
 }

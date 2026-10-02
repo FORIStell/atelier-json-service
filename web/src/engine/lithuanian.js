@@ -3,6 +3,8 @@
 // "Raskite funkcijos f(x) = 10x - 2x^2 išvestinę."  ->  "d/dx 10x - 2x^2"
 // Returns null when the text is not Lithuanian.
 
+import { unicodeMath } from './parser.js';
+
 const LT_LETTERS = /[ąčęėįšųūž]/i;
 const LT_WORDS = /\b(išspręskite|isspreskite|apskaičiuokite|apskaiciuokite|suprastinkite|raskite|nustatykite|parašykite|panaikinkite|duotos?|lygtį|lygtis|nelygybę|nelygybes|reiškinio|reiškinį|funkcijos|išvestinę|kai|ir|jei|jeigu|tai|reikšmę|aibių)\b/i;
 const fold = (s) => s.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, ''); // išvestinę -> isvestine
@@ -11,14 +13,14 @@ export function isLithuanian(s) { return LT_LETTERS.test(s) || LT_WORDS.test(s);
 
 // Plain-text clean-up used for every Lithuanian problem
 function clean(s) {
-  return s
+  return unicodeMath(s)
     .replace(/(\d),(\d)/g, '$1.$2')            // 0,2 -> 0.2 (decimal comma)
     .replace(/[·∙⋅]/g, '*')
     .replace(/−|–/g, '-')
     .replace(/\btg\b/g, 'tan').replace(/\bctg\b/g, 'cot')
     .replace(/\barcctg\b/g, 'acot').replace(/\barctg\b/g, 'atan')
     .replace(/α/g, 'a').replace(/β/g, 'b')
-    .replace(/([\w)\]}])\s+:\s+(?=[\w(√-])/g, '$1 / ')                       // m^2 : m  (":" means divide)
+    .replace(/([\w)\]}°])\s+:\s+(?=[\w(√-])/g, '$1 ÷÷ ')                     // a : b  (":" means divide by everything after it)
     .replace(/\(\s*[a-z]\s*[<>≠≤≥][^()]*\)/g, '')                             // conditions such as (a > 0, a ≠ 1)
     .replace(/\s+/g, ' ').trim();
 }
@@ -30,7 +32,7 @@ function isMathToken(w) {
   const c = w.replace(/^[([{]+|[)\]},.;:?!]+$/g, '');
   if (!c) return /[()[\]{}]/.test(w);
   if (/^[a-zA-Z]$/.test(c)) return true;                                   // x, a, m
-  if (/^[-+*/^=<>≤≥≠|√π°∞!∈∪∩\\]+$/.test(c)) return true;                // operators
+  if (/^[-+*/^=<>≤≥≠|√π°∞!∈∪∩∫÷'\\]+$/.test(c)) return true;              // operators
   if (FN.test(c)) return true;                                              // log_2(2x, sqrt(5)
   if (/[ąčęėįšųūž]/i.test(c)) return false;                                // Lithuanian words
   if (/\d/.test(c)) return true;                                           // 2x, 10^100, 36π^2
@@ -53,12 +55,20 @@ export function mathRun(s) {
   }
   let out = words.slice(best[0], best[1]).join(' ');
   out = out.replace(/^[,.;:]+|[,.;:?!]+$/g, '').replace(/\s*=\s*\??$/, '').trim();   // sentence punctuation, a trailing "="
+  if (out.includes('÷÷')) { const [L, ...R] = out.split('÷÷'); out = `(${L.trim()}) / (${R.join('/').trim()})`; }
   const opens = (out.match(/\(/g) || []).length, closes = (out.match(/\)/g) || []).length;
   if (closes > opens && out.endsWith(')')) out = out.slice(0, -1).trim();
   if (opens > closes && out.startsWith('(')) out = out.slice(1).trim();
   if (/^\(.*=.*\)$/.test(out)) { let d = 0, wraps = true; for (let i = 0; i < out.length - 1; i++) { d += out[i] === '(' ? 1 : out[i] === ')' ? -1 : 0; if (d === 0) { wraps = false; break; } } if (wraps) out = out.slice(1, -1).trim(); }
   out = out.replace(/^(?:[a-zA-Z]\([a-z]\)|y)\s*=\s*/, (m) => m);  // keep f(x) = for the caller
   return out;
+}
+// the math at the start of a text, up to the first ordinary word
+export function firstRun(s) {
+  const words = s.split(' ');
+  let j = 0;
+  while (j < words.length && isMathToken(words[j])) j++;
+  return words.slice(0, j).join(' ').replace(/[,.;:?!]+$/, '').trim();
 }
 // the formula after "f(x) =" (or after "y =")
 const body = (m) => m.replace(/^\s*(?:[a-zA-Z]\s*\(\s*[a-zα-ω]\s*\)|y)\s*=\s*/, '');
@@ -69,10 +79,59 @@ export function fromLithuanian(raw) {
   const after = s.match(/\btai\s+(.+)$/);           // "Kai x ≠ 3, tai <expression> ="
   const M = mathRun(after ? after[1] : s);
   let m;
+  // ---- interval condition: "kai x ∈ (90°; 270°)", "x ∈ [0; 2π]"
+  let interval = '';
+  if ((m = s.match(/(?:kai|kur|,|;)?\s*([a-z])\s*∈\s*([([])\s*([^;]+?)\s*;\s*([^)\]]+?)\s*([)\]])/i))) interval = ` on ${m[2]}${m[3]}, ${m[4]}${m[5]}`;
+  const withoutInterval = (t) => t.replace(/(?:,|;)?\s*(?:kai\s+)?[a-z]\s*∈\s*[([][^)\]]*[)\]]/i, '').replace(/[,;]\s*$/, '').trim();
+  const core = withoutInterval(M);
   const num0 = (re) => { const q = s.match(re); return q ? q[1] : null; };
   // ---- a function defined in the text: "f(x) = 10x - 2x^2", "V(α) = 72π·sin^2(α)·cos(α)"
   const def = s.match(/\b[A-Za-z]\s*\(\s*([a-z])\s*\)\s*=\s*(.+?)(?=\s+(?:yra|bus|grafik\S*|išvestin\S*|isvestin\S*|apibrėž\S*|apibrez\S*|reikšm\S*|reiksm\S*|pirmykšt\S*|būtų|butu|turi|turėtų|lygus|lygi|kai|ir|kurios|kurio)(?=[\s,.;]|$)|[;?]|\.\s|\.$|$)/);
-  const defBody = def ? def[2].trim().replace(/[,.]$/, '') : null, defVar = def ? def[1] : null;
+  const defBody = def ? firstRun(def[2].trim()) || def[2].trim().replace(/[,.]$/, '') : null, defVar = def ? def[1] : null;
+  // ---- interval written as "intervale [−3; 3]"
+  if (!interval && (m = s.match(/(?:intervale|atkarpoje)\s*([([])\s*([^;]+?)\s*;\s*([^)\]]+?)\s*([)\]])/i))) interval = ` on ${m[1]}${m[2]}, ${m[3]}${m[4]}`;
+  // ---- f′(1) when f(x) = ... is given
+  if (def && (m = s.match(/\b([a-zA-Z])\s*'\s*\(\s*([^)]+?)\s*\)/))) return `derivative of ${defBody} at ${defVar} = ${m[2]}`;
+  // ---- factor: "Išskaidykite dauginamaisiais"
+  if (/isskaidyk|dauginamaisiais/.test(f)) return `factor ${core}`;
+  // ---- inverse function
+  if (/atvirkstin/.test(f) && defBody) return `inverse of f(${defVar}) = ${defBody}`;
+  // ---- increasing / decreasing intervals
+  if (/didej|mazej/.test(f) && /interval|kur/.test(f) && defBody) return `${/didej/.test(f) ? 'increasing' : 'decreasing'} intervals of ${defBody}`;
+  // ---- largest and smallest value on an interval
+  if (/didziausi/.test(f) && /maziausi/.test(f) && defBody && interval) return `maximum and minimum of ${defBody}${interval.replace(' on ', ' on ')}`;
+  // ---- area between curves: "figūros, apribotos kreivėmis y = x² ir y = 2x, plotą"
+  if (/plot/.test(f) && /apribot/.test(f)) { const ys = [...s.matchAll(/y\s*=\s*([^,;]+?)(?=\s+ir\s|,|;|\.\s|\.$|$)/g)].map((q) => firstRun(q[1].trim())); if (ys.length >= 2) return `area between ${ys[0]} and ${ys[1]}`; }
+  // ---- motion: s(t) = ...; when is the speed 0, acceleration at t = 3
+  if (/juda/.test(f) && def) {
+    const tasks = [];
+    if (/greit\S* lygus 0|sustoj/.test(f)) tasks.push('speed 0');
+    for (const q of s.matchAll(/(pagreit|greit)\S*,?\s*kai\s*([a-z])\s*=\s*([\d.]+)/gi)) tasks.push(`${/pagreit/i.test(q[1]) ? 'acceleration' : 'speed'} at ${q[2]} = ${q[3]}`);
+    if (tasks.length) return `motion s(${defVar}) = ${defBody}: ${tasks.join('; ')}`;
+  }
+  // ---- number of digits
+  if (/kiek skaitmen/.test(f)) return `number of digits of ${core}`;
+  // ---- parameter values: two different real roots / touches
+  if (/kuriomis/.test(f)) {
+    const p = (s.match(/parametro\s+([a-z])\b/i) || s.match(/kuriomis\s+([a-z])\s+reik/i) || [])[1];
+    if (p && /du skirting|du sprendin/.test(f)) return `values of ${p} where ${core} has two solutions`;
+    if (p && /neturi/.test(f)) return `values of ${p} where ${core} has no solutions`;
+    if (p && /liecia|viena sprendin/.test(f)) {
+      const ys = [...s.matchAll(/y\s*=\s*([^,;]+?)(?=\s+(?:liečia|liecia|ir)\s|,|;|\?|\.\s|\.$|$)/g)].map((q) => firstRun(q[1].trim()));
+      if (ys.length >= 2) return `values of ${p} where ${ys[0]} = ${ys[1]} has one solution`;
+      return `values of ${p} where ${core} has one solution`;
+    }
+  }
+  // ---- "a yra 25 % didesnis už b. Keliais procentais b mažesnis už a?"
+  if ((m = s.match(/(\d+(?:\.\d+)?)\s*%\s*(didesnis|mažesnis|mazesnis)/i)) && /keliais procentais/.test(f)) {
+    const p = m[1], more = /didesn/.test(fold(m[2]));
+    return more ? `100*${p}/(100+${p})` : `100*${p}/(100-${p})`;
+  }
+  // ---- "sin α = 3/5, kai α ∈ (90°; 180°). Raskite cos α ir tg α."
+  if ((m = s.match(/^(.+?=.+?),?\s*(?:kai\s+)?([a-z])\s*∈\s*([([])\s*([^;]+?)\s*;\s*([^)\]]+?)\s*([)\]])\.\s*(?:raskite|apskaičiuokite|apskaiciuokite|nustatykite)\s+(.+?)\.?$/i))) {
+    const targets = m[7].split(/\s+ir\s+|,\s*/).map((q) => firstRun(q.trim())).filter(Boolean);
+    return `${targets.join(', ')} given ${firstRun(m[1].trim())} on ${m[3]}${m[4]}, ${m[5]}${m[6]}`;
+  }
   // ---- the sum of the first N terms of a listed sequence: "per pirmus 8 ... (12, 15, 18, ...)"
   if ((m = s.match(/(-?[\d.]+)\s*[,;]\s*(-?[\d.]+)\s*[,;]\s*(-?[\d.]+)\s*[,;]\s*(?:\.\.\.|…)/)) && /per\s+pirm\S*\s+(\d+)/i.test(s)) {
     const N = num0(/per\s+pirm\S*\s+(\d+)/i), d = Number(m[2]) - Number(m[1]);
@@ -120,11 +179,6 @@ export function fromLithuanian(raw) {
   // ---- given ... find: "Yra žinoma, kad a = 2^m. Nustatykite, kam lygu log_2(1/a)." / "Apskaičiuokite xy, jei 2^x = 3 ir 3^y = 16."
   if ((m = s.match(/(?:yra žinoma|yra zinoma|žinoma|zinoma),?\s*kad\s+(.+?)\.\s*(?:apskaičiuokite|apskaiciuokite|nustatykite|raskite)[^,]*?(?:,\s*kam\s+lygu)?\s+(.+?)\.?$/i))) return `${mathRun(m[2].replace(/^kam\s+lygu\s+/i, ''))} given ${m[1].split(/\s+ir\s+/).map(mathRun).join('; ')}`;
   if ((m = s.match(/(?:apskaičiuokite|apskaiciuokite|raskite|nustatykite)\s+(.+?),?\s+(?:jei|jeigu|kai)\s+(.+?)\.?$/i)) && /=/.test(m[2]) && !/=/.test(m[1])) return `${mathRun(m[1])} given ${m[2].split(/\s+ir\s+|;\s*/).map(mathRun).join('; ')}`;
-  // ---- interval condition: "kai x ∈ (90°; 270°)", "x ∈ [0; 2π]"
-  let interval = '';
-  if ((m = s.match(/(?:kai|kur|,|;)?\s*([a-z])\s*∈\s*([([])\s*([^;]+?)\s*;\s*([^)\]]+?)\s*([)\]])/i))) interval = ` on ${m[2]}${m[3]}, ${m[4]}${m[5]}`;
-  const withoutInterval = (t) => t.replace(/(?:,|;)?\s*(?:kai\s+)?[a-z]\s*∈\s*[([][^)\]]*[)\]]/i, '').replace(/[,;]\s*$/, '').trim();
-  const core = withoutInterval(M);
   // ---- sets: "A = {1; 4; 9} ir B = {9; 16}. Raskite šių aibių sankirtą A ∩ B."
   if (/aibi/.test(f)) {
     const sets = [...s.matchAll(/([A-Z])\s*=\s*(\{[^}]*\})/g)];
@@ -145,7 +199,7 @@ export function fromLithuanian(raw) {
   }
   // ---- antiderivative: "pirmykštę funkciją ... taškas (0; 1)"
   if (/pirmykst/.test(f)) {
-    const pt = s.match(/task\w*\s*\(\s*([-\d.]+)\s*;\s*([-\d.]+)\s*\)|taš\w*\s*\(\s*([-\d.]+)\s*;\s*([-\d.]+)\s*\)/i);
+    const pt = s.match(/ta[sš]\S*\s*\(\s*([-\d.]+)\s*;\s*([-\d.]+)\s*\)|ta[sš]\S*\s*\(\s*([-\d.]+)\s*;\s*([-\d.]+)\s*\)/i);
     const fx = body(s.match(/=\s*(.+?)\s+pirmyk/i)?.[1] || core);
     return pt ? `antiderivative of ${fx} through (${pt[1] ?? pt[3]}, ${pt[2] ?? pt[4]})` : `integrate ${fx} dx`;
   }
@@ -170,7 +224,7 @@ export function fromLithuanian(raw) {
   }
   // ---- tangent line: "liestinės lygtį taške x0 = 2"
   if (/liestin/.test(f)) {
-    const at = s.match(/(?:taške|taske|kai)\s*([a-z])0?\s*=\s*([-\w./π]+)/i);
+    const at = s.match(/(?:taške|taske|kai)\s*([a-z])(?:_?\(?0\)?)?\s*=\s*([-\w./π]+)/i);
     if (at) return `tangent line to ${body(core.split(/\s(?:ir|kai)\s/)[0].replace(/\s*(?:taške|taske).*$/i, ''))} at ${at[1]} = ${at[2]}`;
   }
   // ---- largest / smallest value (on an interval)
@@ -188,7 +242,7 @@ export function fromLithuanian(raw) {
   if (/suprastink/.test(f)) return `simplify ${core}`;
   if (/apskaiciuok|raskite|nustatykite|kam lygu|lygus|lygi/.test(f) && core) {
     if (interval && /=/.test(core)) return `${core}${interval}`;
-    if (!/=/.test(core) && /(^|[^a-z])[a-df-z](?![a-z(])/i.test(core.replace(/\b(sin|cos|tan|cot|log|lg|ln|sqrt|root|abs|pi|nCr|nPr|asin|acos|atan)\b/g, ''))) return `simplify ${core}`;
+    if (!/=|∫|d\/d|lim|sum|\.\.\./.test(core) && /(^|[^a-z])[a-df-z](?![a-z(])/i.test(core.replace(/\b(sin|cos|tan|cot|log|lg|ln|sqrt|root|abs|pi|nCr|nPr|asin|acos|atan)\b/g, ''))) return `simplify ${core}`;
     return core;
   }
   return core || null;

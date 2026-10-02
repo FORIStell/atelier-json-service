@@ -498,6 +498,7 @@ function simpFn(n, a, opts = {}) {
   switch (n) {
     case 'abs':
       if (x.t === 'num') return num(isQ(x.v) ? x.v.abs() : Math.abs(x.v));
+      if (!has(x) && !has(x, 'i')) { try { const v = evalNum(x); if (v < 0) return simplify(expand(mul(num(-1), x))); if (v >= 0) return x; } catch { /* keep |x| */ } }
       if (x.t === 'mul' && x.a[0].t === 'num' && nvSign(x.a[0].v) < 0) return simpFn('abs', [simpMul([num(-1), x])]);
       if (x.t === 'pow' && x.b.t === 'sym' && isInt(x.e) && x.e.v.n % 2n === 0n) return x;
       if (!has(x)) { const v = evalNum(x); if (v >= 0) return x; return simpMul([num(-1), x]); }

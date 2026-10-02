@@ -296,6 +296,7 @@ function exactApply(node) {
   const leaf = x.t === 'num' ? { t: 'num', v: x.v, src: fmtSrc(x.v, false) } : { t: 'cas', x };
   const res = tex(x);
   const ppX = ppTex(ppMap(x));
+  if (node.t === 'fn' && node.n === 'abs') return { leaf, title: 'Absolute value: the distance from 0, so drop the sign', detail: `\\left|${rawTex(node.a[0])}\\right| = ${res}` };
   if (node.t === 'fn') {
     const k = node.n === 'sqrt' ? 2n : node.n === 'cbrt' ? 3n : BigInt(toNum(node.a[0].v));
     const radR = node.n === 'root' ? node.a[1] : node.a[0];

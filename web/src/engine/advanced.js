@@ -32,6 +32,7 @@ const approx = (x) => { try { return x.t === 'num' && isQ(x.v) && x.v.isInt() ? 
 export function advancedProblem(s, opts, res) {
   let m;
   const t = s.trim();
+  if ((m = t.match(/^maximum and minimum of (.+?) on ([([])\s*(.+?)\s*[,;]\s*(.+?)\s*([)\]])$/i))) return maxAndMin(m[1], m[2], m[3], m[4], m[5], res);
   if ((m = t.match(/^(?:find\s+)?(?:the\s+)?(?:derivative|slope)\s+(?:of\s+)?(.+?)\s+(?:at|when|where)\s+([a-z])\s*=\s*(.+)$/i))) return derivativeAt(m[1], m[2], m[3], res);
   if ((m = t.match(/^(?:find\s+)?(?:the\s+)?tangent(?:\s+line)?\s+(?:to|of)\s+(.+?)\s+where it equals\s+(.+)$/i))) {
     const { f, v } = fnOf(m[1]);
@@ -53,6 +54,13 @@ export function advancedProblem(s, opts, res) {
   if ((m = t.match(/^(?:antiderivative|primitive)\s+of\s+(.+?)\s+(?:through|passing through|with|via)\s*\(\s*(.+?)\s*[,;]\s*(.+?)\s*\)$/i))) return antiderivativeThrough(m[1], m[2], m[3], res);
   if ((m = t.match(/^(?:find\s+)?(?:the\s+)?(maximum|minimum|max|min|largest|smallest|greatest|least)(?:\s+value)?\s+of\s+(.+?)(?:\s+(?:on|in|for)\s+([([])\s*(.+?)\s*[,;]\s*(.+?)\s*([)\]]))?$/i))) return maxMinOn(m[1], m[2], m[3], m[4], m[5], m[6], res);
   if ((m = t.match(/^(?:find\s+)?(?:the\s+)?range\s+of\s+(.+)$/i))) return rangeOf(m[1], res);
+  if ((m = t.match(/^values? of ([a-z]) where (.+=.+?) has (two|one|no) (?:different |distinct )?(?:real )?(?:solutions?|roots?)$/i))) return parameterRoots(m[1], m[2], m[3], res);
+  if ((m = t.match(/^(?:the\s+)?area between (.+?) and (.+)$/i))) return areaBetween(m[1], m[2], res);
+  if ((m = t.match(/^(increasing|decreasing) intervals of (.+)$/i))) return monotonic(m[1], m[2], res);
+  if ((m = t.match(/^(?:number of digits|how many digits)(?: of| in| does)?\s+(.+?)(?: have)?\??$/i))) return digitsOf(m[1], res);
+  if ((m = t.match(/^motion\s+([a-z])\(([a-z])\)\s*=\s*(.+?):\s*(.+)$/i))) return motion(m[3], m[2], m[4], res);
+  if ((t.match(/∫/g) || []).length >= 2) return sumOfIntegrals(t, res);
+  if (/\.\.\./.test(t) && !/^[-\d.\s,+;/]*$/.test(t.replace(/\.\.\./g, ''))) { const r = patternSeries(t, res); if (r) return r; }
   if ((m = t.match(/^(?:evaluate|find|calculate|compute)?\s*(.+?)\s+(?:given|if|where)\s+(.+=.+)$/i)) && !/=/.test(m[1])) return givenProblem(m[1], m[2].split(/\s*;\s*|\s+and\s+/), res);
   if ((m = t.match(/^(?:solve\s+)?slope of (.+?)\s*=\s*(.+)$/i))) return slopeIs(m[1], m[2], res);
   if ((m = t.match(/^volume of revolution of (.+?) up to ([a-z])\s*=\s*(.+)$/i))) return revolution(m[1], m[3], res);
@@ -173,17 +181,22 @@ function findPlainVar(f, v) {
   })(f, false);
   return plain;
 }
-// T given G1; G2: substitute what the givens say, then simplify
+// several targets "cos(a), tan(a) given sin(a) = 3/5 on (90°, 180°)"; several unknowns: pick values for all but one
 function givenProblem(tsrc, gsrcs, res) {
+  let iv = null;
+  gsrcs = gsrcs.map((g) => g.replace(/\s+on\s+([([])\s*(.+?)\s*[,;]\s*(.+?)\s*([)\]])\s*$/i, (mm, lb, lo, hi, rb) => { iv = { lb, lo: bound(lo).v, hi: bound(hi).v, rb, deg: /°/.test(lo + hi) }; return ''; }));
+  const targets = splitTop(tsrc);
+  if (targets.length > 1 || iv) return givenNumeric(targets, gsrcs, iv, res);
   let T = S(P(tsrc));
   const steps = [{ title: 'What we need', math: tex(T) }];
   const env = {};
+  let used = false;
   for (const g of gsrcs) {
     const [ls, rs] = g.split('=');
     if (rs === undefined) continue;
     const L = S(P(ls)), R = S(P(rs));
     steps.push({ title: 'Given', math: `${tex(L)} = ${tex(R)}` });
-    if (L.t === 'sym' && !has(R, L.n)) { T = S(subst(T, L.n, R)); steps.push({ title: `Put $${L.n} = ${tex(R)}$ into it`, math: tex(T) }); continue; }
+    if (L.t === 'sym' && !has(R, L.n)) { used = true; T = S(subst(T, L.n, R)); steps.push({ title: `Put $${L.n} = ${tex(R)}$ into it`, math: tex(T) }); continue; }
     const vars = [...freeVars(S(sub(L, R)))].filter((q) => q !== 'k');
     if (vars.length === 1) {
       const u = vars[0];
@@ -194,6 +207,7 @@ function givenProblem(tsrc, gsrcs, res) {
       steps.push({ title: `Solve for $${u}$`, math: `${u} = ${tex(sols[0])}` });
     }
   }
+  if (freeVars(T).size && !Object.keys(env).length && !used) return givenNumeric([tsrc], gsrcs, null, res);
   // substitute the solved unknowns; all choices must give the same value
   const keys = Object.keys(env);
   let outs = [T];
@@ -210,6 +224,185 @@ function givenProblem(tsrc, gsrcs, res) {
   steps.push({ title: 'Substitute and simplify', math: tex(ans) });
   return res('given', 'Calculate', tex(T), steps, tex(ans), text(ans));
 }
+function splitTop(src) { const out = []; let d = 0, cur = ''; for (const ch of src) { if ('([{'.includes(ch)) d++; if (')]}'.includes(ch)) d--; if ((ch === ',' || ch === ';') && d === 0) { out.push(cur.trim()); cur = ''; } else cur += ch; } if (cur.trim()) out.push(cur.trim()); return out; }
+// numeric version: solve the givens for one unknown (others get test values), evaluate the targets; the answer must not depend on the test values
+function givenNumeric(targets, gsrcs, iv, res) {
+  const Gs = gsrcs.filter((g) => g.includes('=')).map((g) => { const [l, r] = g.split('='); return S(sub(P(l), P(r))); });
+  const Ts = targets.map((q) => S(P(q)));
+  const vars = [...new Set([...Gs, ...Ts].flatMap((x) => [...freeVars(x)]))].filter((q) => q !== 'k' && q !== 'e');
+  if (!vars.length || Gs.length > vars.length) throw new MathError('I could not use the given information');
+  const solveVar = vars.find((u) => Gs.every((g) => has(g, u))) || vars[0];
+  const others = vars.filter((u) => u !== solveVar && !Gs.some((g) => has(g, u) && Gs.length > 1));
+  const trial = (seed) => {
+    const env = {};
+    others.forEach((u, i) => { env[u] = [2.3, 1.7, 3.1][(i + seed) % 3] + seed * 0.37; });
+    const g = Gs[0];
+    const F = (z) => { try { return evalNum(g, { ...env, [solveVar]: z }); } catch { return NaN; } };
+    let lo = iv ? iv.lo : -20, hi = iv ? iv.hi : 20;
+    const roots = [];
+    const N = 4000;
+    let px = lo + 1e-9, py = F(px);
+    for (let i = 1; i <= N; i++) {
+      const x = lo + ((hi - lo) * i) / N - 1e-9, y = F(x);
+      if (Number.isFinite(py) && Number.isFinite(y) && py * y <= 0) { let a = px, b = x, fa = py; for (let k = 0; k < 80; k++) { const mm = (a + b) / 2, fm = F(mm); if (fa * fm <= 0) b = mm; else { a = mm; fa = fm; } } const rr = (a + b) / 2; if (Math.abs(F(rr)) < 1e-7) roots.push(rr); }
+      px = x; py = y;
+    }
+    if (!roots.length) return null;
+    return Ts.map((T) => evalNum(T, { ...env, [solveVar]: roots[0] }));
+  };
+  const a1 = trial(0), a2 = trial(1);
+  if (!a1 || !a2 || a1.some((q, i) => !(Math.abs(q - a2[i]) < 1e-6 * Math.max(1, Math.abs(q))))) throw new MathError('The given information does not fix the value');
+  const nice = (q) => { const fr = toFraction(q); return fr ? num(fr) : num(Number(q.toPrecision(10))); };
+  const outs = a1.map(nice);
+  const steps = [{ title: 'Given', math: gsrcs.map((g) => tex(S(P(g.split('=')[0])))+' = '+tex(S(P(g.split('=')[1])))).join(',\\quad ') + (iv ? `,\\quad ${solveVar} \\in ${iv.lb}${formatNumber(iv.deg ? iv.lo * 180 / Math.PI : iv.lo)}; ${formatNumber(iv.deg ? iv.hi * 180 / Math.PI : iv.hi)}${iv.rb}` : '') },
+    { title: 'Use the given value to find the unknown, then evaluate', math: Ts.map((T, i) => `${tex(T)} = ${tex(outs[i])}`).join(',\\quad ') }];
+  return res('given', 'Calculate', Ts.map(tex).join(',\\ '), steps, Ts.map((T, i) => `${tex(T)} = ${tex(outs[i])}`).join(',\\quad '), Ts.map((T, i) => `${text(T)} = ${text(outs[i])}`).join(', '));
+}
+function toFraction(q) {
+  for (let d = 1; d <= 400; d++) { const n = Math.round(q * d); if (Math.abs(n / d - q) < 1e-10 * Math.max(1, Math.abs(q))) return new Q(BigInt(n), BigInt(d)); }
+  return null;
+}
+// x^2 - 2ax + 9 = 0 has two different real roots  <=>  D > 0
+function parameterRoots(p, eqSrc, howMany, res) {
+  const [l, r] = eqSrc.split('=');
+  const f = S(expand(sub(P(l), P(r))));
+  const v = [...freeVars(f)].find((q) => q !== p && q === 'x') || [...freeVars(f)].find((q) => q !== p);
+  const co = polyCoeffs(f, v);
+  if (!co || co.length !== 3) throw new MathError('I can do this for quadratic equations');
+  const [c0, c1, c2] = co.map(S);
+  const D = S(expand(sub(pow(c1, num(2)), mul(num(4), c2, c0))));
+  const op = /two/i.test(howMany) ? '>' : /one/i.test(howMany) ? '=' : '<';
+  const steps = [{ title: 'Write it as $ax^2 + bx + c = 0$', math: `${tex(f)} = 0` },
+    { title: `${op === '>' ? 'Two different real solutions' : op === '=' ? 'Exactly one solution (the line touches the curve)' : 'No real solutions'}: the discriminant $D = b^2 - 4ac$ must be ${op === '>' ? 'positive' : op === '=' ? 'zero' : 'negative'}`, math: `D = ${tex(D)} ${op === '>' ? '> 0' : op === '=' ? '= 0' : '< 0'}` }];
+  if (op === '=') {
+    const sol = solveEquation(D, ZERO, p, []);
+    const ans = (sol.solutions || []).map((q) => `${p} = ${tex(q)}`).join(',\\quad ') || '\\text{none}';
+    steps.push({ title: `Solve for $${p}$`, math: ans });
+    return res('parameter', `Values of ${p}`, `${tex(f)} = 0`, steps, ans, (sol.solutions || []).map((q) => `${p} = ${text(q)}`).join(', ') || 'None');
+  }
+  const out = solveInequality(D, op, ZERO, p, []);
+  const ans = intervalsTex(out.intervals, p);
+  steps.push({ title: `Solve for $${p}$`, math: ans });
+  return res('parameter', `Values of ${p}`, `${tex(f)} = 0`, steps, ans, intervalsText(out.intervals, p));
+}
+// area between two curves: integrate |f - g| between the intersection points
+function areaBetween(fs, gs, res) {
+  const f = S(P(fs.replace(/^y\s*=\s*/, ''))), g = S(P(gs.replace(/^y\s*=\s*/, '')));
+  const v = chooseVar([f, g]) || 'x';
+  const d = S(sub(f, g));
+  const xs = (realSolutions(d, v, []).list || []).sort((p, q) => evalNum(p) - evalNum(q));
+  if (xs.length < 2) throw new MathError('The curves need to cross at least twice');
+  const steps = [{ title: 'Where do the curves meet? Solve $f = g$', math: xs.map((q) => `${v} = ${tex(q)}`).join(',\\quad ') }];
+  let total = ZERO;
+  const F = integrate(S(expand(d)), v, []);
+  for (let i = 0; i + 1 < xs.length; i++) {
+    const piece = S(sub(subst(F, v, xs[i + 1]), subst(F, v, xs[i])));
+    const ab = evalNum(piece) < 0 ? S(mul(num(-1), piece)) : piece;
+    steps.push({ title: `Area from $${tex(xs[i])}$ to $${tex(xs[i + 1])}$: integrate the top curve minus the bottom one`, math: `\\left|\\int_{${tex(xs[i])}}^{${tex(xs[i + 1])}} \\left(${tex(d)}\\right) d${v}\\right| = ${tex(ab)}` });
+    total = S(add(total, ab));
+  }
+  return res('integral', 'Area between curves', `y = ${tex(f)},\\ y = ${tex(g)}`, steps, tex(total), text(total), { graph: { expr: text(f), v, deriv: text(g) } });
+}
+// where f increases (f' ≥ 0) or decreases (f' ≤ 0)
+function monotonic(kind, src, res) {
+  const { f, v, name } = fnOf(src);
+  const d = derivative(f, v, []);
+  const up = /incr/i.test(kind);
+  const out = solveInequality(d, up ? '>=' : '<=', ZERO, v, []);
+  const steps = [{ title: 'Start with the function', math: `${name} = ${tex(f)}` }, { title: 'Find the derivative', math: `f'(${v}) = ${tex(d)}` },
+    { title: `The function ${up ? 'increases' : 'decreases'} where $f'(${v}) ${up ? '\\ge' : '\\le'} 0$`, math: intervalsTex(out.intervals, v) }];
+  return res('monotonic', up ? 'Increasing' : 'Decreasing', `${name} = ${tex(f)}`, steps, intervalsTex(out.intervals, v), intervalsText(out.intervals, v));
+}
+function maxAndMin(src, lb, lo, hi, rb, res) {
+  const a = maxMinOn('maximum', src, lb, lo, hi, rb, (...x) => x), b = maxMinOn('minimum', src, lb, lo, hi, rb, (...x) => x);
+  const steps = a[3];
+  steps.push(b[3][b[3].length - 1]);
+  return res('extrema', 'Largest and smallest value', a[2], steps, `${a[4]},\\quad ${b[4]}`, `${a[5]}; ${b[5]}`);
+}
+function digitsOf(src, res) {
+  const x = S(P(src));
+  if (!(x.t === 'num' && isQ(x.v) && x.v.isInt())) throw new MathError('I can count digits of whole numbers');
+  const n = (x.v.n < 0n ? -x.v.n : x.v.n).toString();
+  const steps = [{ title: 'Calculate the number', math: `${tex(S(P(src)))} = ${n.length > 40 ? n.slice(0, 20) + '\\ldots' : n}` }, { title: 'Count its digits', math: `${n.length}` }];
+  return res('arithmetic', 'Number of digits', tex(x), steps, `${n.length}`, `${n.length}`);
+}
+// s(t): when is the speed 0, the acceleration at t = T, ...
+function motion(src, v, tasks, res) {
+  const s0 = S(P(src));
+  const vel = derivative(s0, v, []), acc = derivative(vel, v, []);
+  const steps = [{ title: 'Speed is the derivative of the position, acceleration the derivative of the speed', math: `v(${v}) = ${tex(vel)},\\quad a(${v}) = ${tex(acc)}` }];
+  const ans = [], ansT = [];
+  for (const task of tasks.split(';').map((q) => q.trim())) {
+    let m;
+    if (/speed 0|velocity 0|stops/i.test(task)) {
+      const r = solveEquation(vel, ZERO, v, []);
+      const sols = (r.solutions || []).filter((q) => evalNum(q) >= 0);
+      steps.push({ title: 'Speed 0: solve $v(t) = 0$', math: sols.map((q) => `${v} = ${tex(q)}`).join(',\\quad ') });
+      ans.push(sols.map((q) => `${v} = ${tex(q)}`).join(',\\ ')); ansT.push(sols.map((q) => `${v} = ${text(q)}`).join(', '));
+    } else if ((m = task.match(/(acceleration|speed|velocity|position) at [a-z]\s*=\s*(.+)/i))) {
+      const fn0 = /acc/i.test(m[1]) ? acc : /pos/i.test(m[1]) ? s0 : vel;
+      const val0 = S(subst(fn0, v, S(P(m[2]))));
+      const nm = /acc/i.test(m[1]) ? 'a' : /pos/i.test(m[1]) ? 's' : 'v';
+      steps.push({ title: `${m[1][0].toUpperCase() + m[1].slice(1)} at $${v} = ${m[2]}$`, math: `${nm}(${m[2]}) = ${tex(val0)}` });
+      ans.push(`${nm}(${m[2]}) = ${tex(val0)}`); ansT.push(`${nm}(${m[2]}) = ${text(val0)}`);
+    }
+  }
+  return res('motion', 'Motion', `s(${v}) = ${tex(s0)}`, steps, ans.join(';\\quad '), ansT.join('; '));
+}
+// ∫_a^b f dx + ∫_c^d g dx
+function sumOfIntegrals(t, res) {
+  const re = /([+-])?\s*∫_\(?([^()^\s]+(?:\([^()]*\))?)\)?\^\(?([^()\s]+(?:\([^()]*\))?)\)?\s*(.+?)\s*d([a-z])(?=\s*[+-]\s*∫|\s*$)/g;
+  let m, total = ZERO; const steps = [];
+  while ((m = re.exec(t))) {
+    const a = S(P(m[2])), b = S(P(m[3])), body = S(P(m[4])), v = m[5];
+    const F = integrate(body, v, []);
+    if (!F) throw new MathError('I could not integrate ' + text(body));
+    const val0 = S(sub(subst(F, v, b), subst(F, v, a)));
+    steps.push({ title: `$\\int_{${tex(a)}}^{${tex(b)}} ${tex(body)}\\,d${v}$`, math: `\\left[${tex(F)}\\right]_{${tex(a)}}^{${tex(b)}} = ${tex(val0)}` });
+    total = S(add(total, m[1] === '-' ? mul(num(-1), val0) : val0));
+  }
+  if (!steps.length) return null;
+  steps.push({ title: 'Add the results', math: tex(total) });
+  return res('integral', 'Definite integrals', '', steps, tex(total), text(total));
+}
+// (1 + 1/2)(1 + 1/3)…(1 + 1/99),  1/(1·2) + 1/(2·3) + … + 1/(49·50): find the pattern in the numbers
+function patternSeries(t, res) {
+  const s0 = t.replace(/[·×]/g, '*').trim();
+  let terms, kind;
+  if (/^\(.*\)\s*\.\.\.\s*\(.*\)$/.test(s0) && !/\)\s*[+]\s*\(/.test(s0)) {
+    kind = 'Π';
+    terms = s0.replace(/\.\.\./, ')(...)(').split(/\)\s*\(/).map((q) => q.replace(/^\(|\)$/g, '').trim()).filter((q) => q !== '...');
+    const dots = s0.replace(/\.\.\./, ')(...)(').split(/\)\s*\(/).map((q) => q.replace(/^\(|\)$/g, '').trim()).indexOf('...');
+    terms.dotsAt = dots;
+  } else if (/\+\s*\.\.\.\s*\+/.test(s0)) {
+    kind = 'Σ';
+    const parts = s0.split(/\s*\+\s*/);
+    terms = parts.filter((q) => q !== '...'); terms.dotsAt = parts.indexOf('...');
+  } else return null;
+  if (terms.length < 3 || terms.dotsAt < 2) return null;
+  const nums = (q) => (q.match(/\d+/g) || []).map(Number);
+  const tmpl = (q) => q.replace(/\d+/g, '#');
+  const first = terms.slice(0, terms.dotsAt), last = terms[terms.length - 1];
+  if (!first.every((q) => tmpl(q) === tmpl(first[0])) || tmpl(last) !== tmpl(first[0])) return null;
+  const ns = first.map(nums), nl = nums(last);
+  const d = ns[0].map((x, i) => ns[1][i] - x);
+  if (!ns.every((row, j) => row.every((x, i) => x === ns[0][i] + j * d[i]))) return null;
+  const vi = d.findIndex((q) => q !== 0);
+  if (vi < 0) return null;
+  const count = (nl[vi] - ns[0][vi]) / d[vi] + 1;
+  if (!Number.isInteger(count) || count < 1 || count > 100000 || !nl.every((x, i) => x === ns[0][i] + (count - 1) * d[i])) return null;
+  let i = 0;
+  const body = tmpl(first[0]).replace(/#/g, () => { const k = i++; return d[k] ? `(${ns[0][k]} + ${d[k]}*(k-1))` : `${ns[0][k]}`; });
+  let acc = kind === 'Σ' ? Q.of(0) : Q.of(1);
+  const B = P(body);
+  for (let k = 1; k <= count; k++) { const tv = S(subst(B, 'k', num(k))); if (!(tv.t === 'num' && isQ(tv.v))) return null; acc = kind === 'Σ' ? acc.add(tv.v) : acc.mul(tv.v); }
+  const steps = [{ title: 'Find the pattern: the general term', math: `a_k = ${tex(S(B))},\\quad k = 1, \\dots, ${count}` }];
+  if (kind === 'Π') steps.push({ title: 'Write the factors as fractions: most numerators and denominators cancel', math: `${first.map((q) => tex(S(P(q)))).join(' \\cdot ')} \\cdots ${tex(S(P(last)))}` });
+  else steps.push({ title: 'Split each term into partial fractions: most terms cancel (telescoping)' });
+  steps.push({ title: kind === 'Σ' ? 'Sum' : 'Product', math: tex(num(acc)) });
+  return res('series', kind === 'Σ' ? 'Sum' : 'Product', s0, steps, tex(num(acc)), text(num(acc)));
+}
+
 // x where the slope of f equals a value: f'(x) = c
 function slopeIs(fsrc, csrc, res) {
   const { f, v } = fnOf(fsrc);
@@ -372,6 +565,7 @@ function asymptotes(src, res) {
 }
 
 // ---------------- domain ----------------
+export function intersectIntervals(A, B) { return intersect(A, B); }
 function intersect(A, B) {
   const out = [];
   for (const a of A) for (const b of B) {
@@ -395,6 +589,13 @@ function removePoint(iv, p, pn) {
 function domain(src, res) {
   const { f, v, name } = fnOf(src);
   const steps = [{ title: 'Start with the function', math: `${name} = ${tex(f)}` }];
+  const iv = domainSteps(f, v, steps);
+  const ans = intervalsTex(iv, v);
+  steps.push({ title: 'Domain', math: ans });
+  return res('domain', 'Domain', `${name} = ${tex(f)}`, steps, ans, intervalsText(iv, v), { graph: { expr: text(f), v } });
+}
+// where f is defined (roots of negatives, logs, division by zero) as intervals
+export function domainSteps(f, v, steps) {
   const conds = [];
   (function walk(x) {
     if (x.t === 'pow' && x.e.t === 'num' && isQ(x.e.v)) {
@@ -424,9 +625,7 @@ function domain(src, res) {
     }
   }
   if (!conds.length) steps.push({ title: 'No roots of negative numbers, no division by zero, no logarithms: every real number works' });
-  const ans = intervalsTex(iv, v);
-  steps.push({ title: 'Domain', math: ans });
-  return res('domain', 'Domain', `${name} = ${tex(f)}`, steps, ans, intervalsText(iv, v), { graph: { expr: text(f), v } });
+  return iv;
 }
 
 // ---------------- inverse function ----------------

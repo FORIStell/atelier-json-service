@@ -10,7 +10,7 @@ import { derivative, integrate, definiteIntegral, limit } from './calculus.js';
 import { toQArray, deg, toNode, rationalRoots, synthDiv } from './poly.js';
 import { matrixProblem } from './matrix.js';
 import { geometryProblem } from './geometry.js';
-import { advancedProblem, expTrigIntegral, trigPowerIntegral } from './advanced.js';
+import { advancedProblem, expTrigIntegral, trigPowerIntegral, domainSteps, intersectIntervals } from './advanced.js';
 import { fromLithuanian } from './lithuanian.js';
 
 const S = (x) => simplify(x);
@@ -390,6 +390,14 @@ function inequalityProblem(l, op, r, raw, forVar, res) {
   if (!v) { const d = evalNum(S(sub(l, r))); const ok = { '<': d < 0, '>': d > 0, '<=': d <= 0, '>=': d >= 0, '!=': d !== 0 }[op]; return res('check', 'Check', rawTex(raw), [], ok ? '\\text{True}' : '\\text{False}', ok ? 'True' : 'False'); }
   const steps = [{ title: 'Start with the inequality', math: rawTex(raw) }];
   const out = solveInequality(l, op, r, v, steps);
+  // keep only x where both sides are defined (logs, roots, fractions)
+  try {
+    const dom = domainSteps(S(sub(l, r)), v, []);
+    if (!(dom.length === 1 && dom[0][0] === -Infinity && dom[0][1] === Infinity)) {
+      const cut = intersectIntervals(out.intervals, dom);
+      if (intervalsText(cut, v) !== intervalsText(out.intervals, v)) { steps.push({ title: 'Keep only the values where everything is defined', math: intervalsTex(dom, v) }); out.intervals = cut; }
+    }
+  } catch { /* no domain information */ }
   const ans = intervalsTex(out.intervals, v);
   steps.push({ title: 'Answer', math: ans });
   return res('inequality', `Solve for ${v}`, rawTex(raw), steps, ans, intervalsText(out.intervals, v));

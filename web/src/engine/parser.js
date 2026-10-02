@@ -12,7 +12,26 @@ const GREEK = { 'π': 'pi', 'θ': 'theta', 'α': 'alpha', 'β': 'beta', 'γ': 'g
 const NAMED = new Set(['pi', 'theta', 'alpha', 'beta', 'gamma', 'lambda', 'mu', 'sigma', 'phi', 'omega', 'infinity', 'inf', 'oo', 'delta', 'Delta']);
 const SUPERS = { '⁰': '0', '¹': '1', '²': '2', '³': '3', '⁴': '4', '⁵': '5', '⁶': '6', '⁷': '7', '⁸': '8', '⁹': '9', '⁻': '-', 'ⁿ': 'n', 'ˣ': 'x' };
 
+const SUBS = { '₀': '0', '₁': '1', '₂': '2', '₃': '3', '₄': '4', '₅': '5', '₆': '6', '₇': '7', '₈': '8', '₉': '9', 'ₐ': 'a', 'ₓ': 'x', 'ₙ': 'n', ',': '.', '₋': '-' };
+// Unicode math as typed or copied from documents: log₂ 8, a₁₀, ∫₀², x⁴, cos² 15°, 0,(36), …, f′(1)
+export function unicodeMath(s) {
+  s = String(s).replace(/…|⋯/g, '...').replace(/[′ʹ]/g, "'").replace(/″/g, "''");
+  const sub = (t) => [...t].map((c) => SUBS[c] ?? c).join('');
+  s = s.replace(/∫\s*([₀-₉ₐₓₙ₋]+)/g, (m, t) => `∫_(${sub(t)})`);
+  s = s.replace(/([A-Za-z])([₀-₉ₐₓₙ₋](?:[₀-₉ₐₓₙ₋]|,(?=[₀-₉]))*)/g, (m, c, t) => `${c}_${t.length > 1 ? `(${sub(t)})` : sub(t)}`);
+  s = s.replace(/[⁰¹²³⁴⁵⁶⁷⁸⁹⁻ⁿˣ]+/g, (m) => '^(' + [...m].map((c) => SUPERS[c]).join('') + ')');
+  // cos^(2) 15° -> (cos(15°))^2,  lg^(2)x -> (lg(x))^2
+  s = s.replace(/\b(sin|cos|tan|tg|ctg|cot|lg|ln)\^\((\d)\)\s*([a-zA-Zα-ω]\b|[\d.]+°?|π)/g, '($1($3))^$2');
+  // repeating decimals: 0,(36) = 36/99, 1.2(3) = 37/30
+  s = s.replace(/(\d+)[.,](\d*)\((\d+)\)/g, (m, a, b, c) => {
+    const lb = BigInt(b.length), lc = BigInt(c.length), nines = 10n ** lc - 1n;
+    const N = (BigInt(a) * 10n ** lb + BigInt(b || '0')) * nines + BigInt(c), D = 10n ** lb * nines;
+    return `(${N}/${D})`;
+  });
+  return s;
+}
 export function normalizeInput(s) {
+  s = unicodeMath(s);
   s = String(s).replace(/\bnCr\b/g, 'ncr').replace(/\bnPr\b/g, 'npr');
   s = s.replace(/[−–—]/g, '-').replace(/[×✕✖⋅·∙]/g, '*').replace(/(\d)\s*[∶:]\s*(?=\d)/g, '$1÷').replace(/≤|=</g, '<=').replace(/≥|=>/g, '>=')
     .replace(/≠|!=|=\/=/g, '!=').replace(/\*\*/g, '^').replace(/∞/g, 'oo').replace(/√/g, ' sqrt').replace(/∛/g, ' cbrt')

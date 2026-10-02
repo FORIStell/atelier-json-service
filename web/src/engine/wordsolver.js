@@ -247,6 +247,15 @@ export function solveWords(raw) {
       const x = ((2 * T - d) + Math.sqrt((2 * T - d) ** 2 + 4 * T * d)) / 2;
       return out('Working together', [{ title: '$\\frac{1}{x} + \\frac{1}{x + d} = \\frac{1}{T}$', math: `x = ${fmt(x)},\\ x + ${d} = ${fmt(x + d)}` }], [['first', r6(x)], ['second', r6(x + d)]]);
     }
+    // "together they need T, the first alone a: how long for the second?"
+    const sents = f.split(/(?<=[.!?])\s+(?=[a-z])/), TOG = /kartu|abu|abi|together|both/;
+    const tIn = (x) => [...x.matchAll(/(\d+(?:\.\d+)?)\s*(?:val|h\b|hours?|dien|days?|min)/g)].map((m) => Number(m[1]));
+    const tog = sents.find((x, i) => i < sents.length - 1 && TOG.test(x) && tIn(x).length === 1);
+    const alone = sents.filter((x) => x !== tog).flatMap(tIn);
+    if (tog && alone.length === 1 && !TOG.test(sents[sents.length - 1])) {
+      const T = tIn(tog)[0], a = alone[0], t = 1 / (1 / T - 1 / a);
+      if (t > 0) return out('Working together', [{ title: 'Together they do $\\frac{1}{T}$ of the job per unit of time; subtract the known part', math: `\\frac{1}{${T}} - \\frac{1}{${a}} = \\frac{1}{t} \\Rightarrow t = ${fmt(t)}` }], [['t', r6(t)]]);
+    }
     if (has(f, /kartu|abu|together|both/) && times.length >= 2) {
       const [a, b] = times.map((q) => q.v), t = (a * b) / (a + b);
       return out('Working together', [{ title: 'Add the parts done per unit of time', math: `\\frac{1}{${a}} + \\frac{1}{${b}} = \\frac{1}{t} \\Rightarrow t = ${fmt(t)}` }], [['t', r6(t)]]);

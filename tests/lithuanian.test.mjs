@@ -37,3 +37,7 @@ const general = [
   ['The sum of two numbers is 40 and their difference is 10. Find the numbers.', 'x = 25, y = 15'],
 ];
 for (const [q, want] of general) test(q, () => assert.equal(solveProblem(q).answerText, want));
+test('together time given, one alone: find the other', () => {
+  assert.match(solveProblem('Du vamzdžiai kartu pripildo baseiną per 6 valandas. Pirmasis vienas pripildo per 10 valandų. Per kiek valandų baseiną pripildytų antrasis vamzdis?').answerText, /t = 15/);
+  assert.match(solveProblem('Pirmasis vamzdis pripildo baseiną per 6 h, antrasis per 3 h. Per kiek valandų pripildys abu kartu?').answerText, /t = 2/);
+});

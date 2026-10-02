@@ -6,6 +6,7 @@ import { latexToText } from './src/engine/latex.js';
 import { SymbolModel } from './src/ocr/model.js';
 import { grayFromImage, binarize } from './src/ocr/preprocess.js';
 import { recognizeMask } from './src/ocr/recognize.js';
+import { lang, setLang, trStep, trKind, trAnswer, trError, applyUI, ui } from './src/i18n.js';
 
 const $ = (id) => document.getElementById(id);
 const store = {
@@ -18,13 +19,13 @@ function texHTML(tex, display = false) {
   try { return window.katex.renderToString(tex, { displayMode: display, throwOnError: false, strict: false }); } catch { return escapeHtml(tex); }
 }
 const richHTML = (s) => String(s).split('$').map((p, i) => (i % 2 ? texHTML(p) : escapeHtml(p))).join('');
-function toast(msg, ms = 2600) { const t = $('toast'); t.textContent = msg; t.hidden = false; clearTimeout(toast.t); toast.t = setTimeout(() => { t.hidden = true; }, ms); }
-function busy(on, text = 'Reading…') { $('busy').hidden = !on; $('busyText').textContent = text; }
+function toast(msg, ms = 2600) { const t = $('toast'); t.textContent = ui(msg); t.hidden = false; clearTimeout(toast.t); toast.t = setTimeout(() => { t.hidden = true; }, ms); }
+function busy(on, text = 'Reading…') { $('busy').hidden = !on; $('busyText').textContent = ui(text); }
 const nextFrame = () => new Promise((r) => setTimeout(r, 30));
 
 // ================================================================ settings
 let degrees = store.get('degrees', false);
-function syncAngle() { $('angleLabel').textContent = degrees ? 'Degrees' : 'Radians'; document.querySelectorAll('[data-angle]').forEach((b) => { b.textContent = degrees ? 'deg' : 'rad'; }); }
+function syncAngle() { $('angleLabel').textContent = ui(degrees ? 'Degrees' : 'Radians'); document.querySelectorAll('[data-angle]').forEach((b) => { b.textContent = degrees ? 'deg' : 'rad'; }); }
 
 // ================================================================ sheets
 const SHEETS = ['calc', 'result', 'write', 'history', 'words'];
@@ -51,6 +52,7 @@ $('menuBtn').addEventListener('click', () => { $('menu').hidden = false; });
 document.querySelectorAll('[data-menu]').forEach((b) => b.addEventListener('click', () => {
   const m = b.dataset.menu;
   if (m === 'angle') { degrees = !degrees; store.set('degrees', degrees); syncAngle(); toast(`Angles in ${degrees ? 'degrees' : 'radians'}`); return; }
+  if (m === 'lang') { setLang(lang === 'lt' ? 'en' : 'lt'); syncLang(); if (current && current.r && !$('result').hidden) renderResult(current.r, current.source); return; }
   if (m === 'accurate') { const v = !store.get('accurate', null); store.set('accurate', v); syncAccurate(); toast(v ? 'Accurate reader on (downloads once when you next read a photo)' : 'Using the fast reader'); return; }
   $('menu').hidden = true;
   if (m === 'help') $('help').hidden = false;
@@ -98,7 +100,7 @@ function syncHome() {
   $('menuBtn').hidden = !$('closeStillBtn').hidden;
   if (idle) camMessage('');
 }
-function camMessage(m) { $('camMsg').textContent = m; $('camMsg').hidden = !m; }
+function camMessage(m) { $('camMsg').textContent = ui(m); $('camMsg').hidden = !m; }
 $('torchBtn').addEventListener('click', async () => {
   const track = stream && stream.getVideoTracks()[0];
   if (!track) return;
@@ -120,7 +122,7 @@ function showStill(url) {
   img.onload = () => {
     still = img; stopCamera();
     img.hidden = false; video.hidden = true; camMessage('');
-    $('homeHint').textContent = 'Circle the problem you want solved';
+    $('homeHint').textContent = ui('Circle the problem you want solved');
     if (!isDesk) SHEETS.forEach((s) => { $(s).hidden = true; });
     syncHome();
     sizeLasso(); lasso.hidden = false;
@@ -135,7 +137,7 @@ for (const id of ['fileInput', 'fileInput2']) $(id).addEventListener('change', (
 });
 $('closeStillBtn').addEventListener('click', () => {
   still = null; $('still').hidden = true; video.hidden = false; lasso.hidden = true;
-  $('homeHint').textContent = 'Take a picture of a math problem';
+  $('homeHint').textContent = ui('Take a picture of a math problem');
   if (isDesk) { webcamWanted = false; stopCamera(); }
   syncHome();
   startCamera();
@@ -343,7 +345,7 @@ async function getReader() {
   if (!pref) return null;
   if (!readerPromise) {
     const { FormulaReader } = await import('./src/ocr/mfr.js');
-    readerPromise = FormulaReader.load(new URL('model/mfr/', location.href), (p, partial) => busy(true, `Downloading the accurate reader… ${Math.round(100 * p)}%`))
+    readerPromise = FormulaReader.load(new URL('model/mfr/', location.href), (p, partial) => busy(true, `${lang === 'lt' ? 'Atsisiunčiamas tikslus skaitytuvas…' : 'Downloading the accurate reader…'} ${Math.round(100 * p)}%`))
       .catch((e) => { readerPromise = null; throw e; });
   }
   busy(true, 'Loading the accurate reader…');
@@ -407,7 +409,8 @@ function distinctReadings(latexList) {
   }
   return res;
 }
-function syncAccurate() { const el = $('accurateLabel'); if (el) el.textContent = store.get('accurate', null) ? 'On' : 'Off'; }
+function syncAccurate() { const el = $('accurateLabel'); if (el) el.textContent = ui(store.get('accurate', null) ? 'On' : 'Off'); }
+function syncLang() { applyUI(); $('langLabel').textContent = lang === 'lt' ? 'Lietuvių' : 'English'; syncAngle(); syncAccurate(); }
 
 function useRecognized(lines, source) {
   if (!lines.length) { toast('I could not find any math. Try again closer, with more light.'); return; }
@@ -440,10 +443,10 @@ function solveText(text, { source = 'calc', latex = null, alts = [] } = {}) {
     if (source === 'calc') { showCalcError(e.message); return; }
     // reading went wrong: open the calculator with what was read so it can be fixed
     openCalcWith(text);
-    showCalcError(`I read “${text}” but couldn't solve it: ${e.message} Fix it and press ⏎.`);
+    showCalcError(lang === 'lt' ? `Perskaičiau „${text}“, bet nepavyko išspręsti: ${trError(e.message)} Pataisykite ir paspauskite ⏎.` : `I read “${text}” but couldn't solve it: ${e.message} Fix it and press ⏎.`);
     return;
   }
-  current = { text, latex: latex ?? safeTex(text), source, alts };
+  current = { text, latex: latex ?? safeTex(text), source, alts, r };
   cameFrom = source === 'calc' ? 'calc' : null;
   renderResult(r, source);
   addHistory(text, current.latex, r.answerText);
@@ -451,19 +454,19 @@ function solveText(text, { source = 'calc', latex = null, alts = [] } = {}) {
 }
 const safeTex = (t) => { try { return rawTex(parse(t)); } catch { return t; } };
 function renderResult(r, source) {
-  $('resultKind').textContent = r.title;
+  $('resultKind').textContent = trKind(r.title);
   if (r.kind === 'word' || source === 'words') { $('resultProblem').textContent = current ? current.text : ''; $('resultProblem').classList.add('as-text'); }
   else { $('resultProblem').classList.remove('as-text'); $('resultProblem').innerHTML = texHTML(source === 'calc' && current && current.latex ? current.latex : r.inputTex, true); }
   $('photoNote').hidden = source !== 'photo' && source !== 'write';
-  $('photoNote').textContent = 'Read from your ' + (source === 'write' ? 'writing' : 'photo') + '. Something wrong? Tap Edit.';
+  $('photoNote').textContent = lang === 'lt' ? `Perskaityta iš ${source === 'write' ? 'rašto' : 'nuotraukos'}. Kažkas negerai? Spauskite „Taisyti“.` : 'Read from your ' + (source === 'write' ? 'writing' : 'photo') + '. Something wrong? Tap Edit.';
   renderAlts(source);
-  $('resultAnswer').innerHTML = texHTML(r.answerTex, true);
+  $('resultAnswer').innerHTML = texHTML(trAnswer(r.answerTex), true);
   $('copyBtn').onclick = async () => { try { await navigator.clipboard.writeText(r.answerText); toast('Copied'); } catch { /* ignore */ } };
   const ol = $('steps');
   ol.innerHTML = '';
   for (const s of r.steps) {
     const li = document.createElement('li');
-    let h = `<div class="step-title">${richHTML(s.title)}</div>`;
+    let h = `<div class="step-title">${richHTML(trStep(s.title))}</div>`;
     if (s.detail) h += `<div class="step-detail">${texHTML(s.detail, true)}</div>`;
     if (s.math) h += `<div class="step-math">${texHTML(s.math, true)}</div>`;
     li.innerHTML = h;
@@ -534,14 +537,14 @@ function solveFromCalc() {
 // ---- word problems: a plain text box
 function solveWords(text) {
   text = String(text || '').trim();
-  if (!text) { $('wordsError').textContent = 'Type a problem first.'; $('wordsError').hidden = false; return; }
+  if (!text) { $('wordsError').textContent = ui('Type a problem first.'); $('wordsError').hidden = false; return; }
   let r;
   try { r = solveProblem(text, { degrees }); } catch (e) {
     openSheet('words'); $('wordsText').value = text;
-    $('wordsError').textContent = e.message; $('wordsError').hidden = false; return;
+    $('wordsError').textContent = trError(e.message); $('wordsError').hidden = false; return;
   }
   $('wordsError').hidden = true;
-  current = { text, latex: null, source: 'words', alts: [] };
+  current = { text, latex: null, source: 'words', alts: [], r };
   cameFrom = 'words';
   renderResult(r, 'words');
   addHistory(text, null, r.answerText);
@@ -556,7 +559,7 @@ function openCalcWith(text, latex) {
   const set = () => { if (!mf) return setTimeout(set, 60); mf.setValue(latex || safeTex(text)); livePreview(); };
   set();
 }
-function showCalcError(m) { $('calcError').textContent = m; $('calcError').hidden = false; }
+function showCalcError(m) { $('calcError').textContent = trError(ui(m)); $('calcError').hidden = false; }
 function hideCalcError() { $('calcError').hidden = true; }
 let previewTimer = null;
 function livePreview() {
@@ -840,8 +843,7 @@ function drawGraph(g) {
 function niceStep(raw) { const p = Math.pow(10, Math.floor(Math.log10(raw))); const m = raw / p; return (m < 1.5 ? 1 : m < 3.5 ? 2 : m < 7.5 ? 5 : 10) * p; }
 
 // ================================================================ start
-syncAngle();
-syncAccurate();
+syncLang();
 renderPad('basic');
 initMathField();
 startCamera();

@@ -1,6 +1,6 @@
 import { solveProblem } from './src/engine/index.js';
 import { parse } from './src/engine/parser.js';
-import { rawTex } from './src/engine/print.js';
+import { rawTex, text as plainText } from './src/engine/print.js';
 import { fromRaw, evalNum } from './src/engine/cas.js';
 import { latexToText } from './src/engine/latex.js';
 import { SymbolModel } from './src/ocr/model.js';
@@ -195,6 +195,7 @@ async function getReader() {
   return readerPromise;
 }
 // crop each line from the grey image and let the accurate reader pick the best reading
+// returns the lines read; lines.alts[i] lists other likely readings of line i ("Did you mean…?")
 async function readAccurately(g, w, h, out) {
   if (!out.lines.length) return out.lines;
   let reader;
@@ -212,6 +213,7 @@ async function readAccurately(g, w, h, out) {
     } else blocks.push({ box: { ...b }, ks: [k] });
   });
   const lines = [];
+  lines.alts = [];
   for (let n = 0; n < blocks.length; n++) {
     busy(true, blocks.length > 1 ? `Reading line ${n + 1} of ${blocks.length}…` : 'Reading the problem…');
     await nextFrame();
@@ -224,30 +226,42 @@ async function readAccurately(g, w, h, out) {
     try { if (tinyText) tinyTex = rawTex(parse(tinyText)).replace(/\\left|\\right/g, ''); } catch { /* tiny reading not valid */ }
     try {
       const cands = await reader.read(crop, cw, ch, tinyTex);
-      const ok = cands.find((c) => { try { const t = latexToText(c.latex); if (!t.trim() || /\(\s*\)/.test(t)) return false; parse(t); return true; } catch { return false; } });
+      const valid = distinctReadings(cands.map((c) => c.latex));
       const fallback = tinyText ?? blocks[n].ks.map((i) => out.lines[i]).join(', ');
-      lines.push(ok ? latexToText(ok.latex) : fallback);
-    } catch (e) { console.warn(e); lines.push(tinyText ?? out.lines[blocks[n].ks[0]]); }
+      lines.push(valid.length ? valid[0] : fallback);
+      lines.alts.push(valid.slice(1, 4));
+    } catch (e) { console.warn(e); lines.push(tinyText ?? out.lines[blocks[n].ks[0]]); lines.alts.push([]); }
   }
   return lines;
+}
+// readings the engine understands, best first, without repeats that mean the same thing
+function distinctReadings(latexList) {
+  const seen = new Set(), res = [];
+  for (const l of latexList) {
+    let t;
+    try { t = latexToText(l); if (!t.trim() || /\(\s*\)/.test(t)) continue; const key = plainText(fromRaw(parse(t))).replace(/\s+/g, ''); if (seen.has(key)) continue; seen.add(key); } catch { continue; }
+    res.push(t);
+  }
+  return res;
 }
 function syncAccurate() { const el = $('accurateLabel'); if (el) el.textContent = store.get('accurate', null) ? 'On' : 'Off'; }
 
 function useRecognized(lines, source) {
   if (!lines.length) { toast('I could not find any math. Try again closer, with more light.'); return; }
+  const alts = lines.alts || [];
   if (lines.length > 1 && lines.every((l) => l.includes('='))) { solveText(lines.join(', '), { source }); return; }
-  if (lines.length === 1) { solveText(lines[0], { source }); return; }
+  if (lines.length === 1) { solveText(lines[0], { source, alts: alts[0] }); return; }
   // several lines: ask which one
   const m = $('help');
   const card = m.querySelector('.modal-card');
   const old = card.innerHTML;
   card.innerHTML = '<h2>Which problem?</h2><div class="recog-lines"></div><p></p><button class="btn" data-x>Cancel</button>';
-  for (const l of lines) {
+  lines.forEach((l, i) => {
     const b = document.createElement('button');
     try { b.innerHTML = texHTML(rawTex(parse(l))); } catch { b.textContent = l; }
-    b.addEventListener('click', () => { m.hidden = true; card.innerHTML = old; rebindHelp(); solveText(l, { source }); });
+    b.addEventListener('click', () => { m.hidden = true; card.innerHTML = old; rebindHelp(); solveText(l, { source, alts: alts[i] }); });
     card.querySelector('.recog-lines').appendChild(b);
-  }
+  });
   card.querySelector('[data-x]').addEventListener('click', () => { m.hidden = true; card.innerHTML = old; rebindHelp(); });
   m.hidden = false;
 }
@@ -255,7 +269,7 @@ function rebindHelp() { document.querySelector('[data-close-modal]').addEventLis
 
 // ================================================================ solving + results
 let current = null, cameFrom = null;
-function solveText(text, { source = 'calc', latex = null } = {}) {
+function solveText(text, { source = 'calc', latex = null, alts = [] } = {}) {
   let r;
   try { r = solveProblem(text, { degrees }); }
   catch (e) {
@@ -265,7 +279,7 @@ function solveText(text, { source = 'calc', latex = null } = {}) {
     showCalcError(`I read “${text}” but couldn't solve it: ${e.message} Fix it and press ⏎.`);
     return;
   }
-  current = { text, latex: latex ?? safeTex(text), source };
+  current = { text, latex: latex ?? safeTex(text), source, alts };
   cameFrom = source === 'calc' ? 'calc' : null;
   renderResult(r, source);
   addHistory(text, current.latex, r.answerText);
@@ -277,6 +291,7 @@ function renderResult(r, source) {
   $('resultProblem').innerHTML = texHTML(source === 'calc' && current && current.latex ? current.latex : r.inputTex, true);
   $('photoNote').hidden = source !== 'photo' && source !== 'write';
   $('photoNote').textContent = 'Read from your ' + (source === 'write' ? 'writing' : 'photo') + '. Something wrong? Tap Edit.';
+  renderAlts(source);
   $('resultAnswer').innerHTML = texHTML(r.answerTex, true);
   $('copyBtn').onclick = async () => { try { await navigator.clipboard.writeText(r.answerText); toast('Copied'); } catch { /* ignore */ } };
   const ol = $('steps');
@@ -292,6 +307,27 @@ function renderResult(r, source) {
   $('graphCard').hidden = !r.graph;
   $('result').querySelector('.result-body').scrollTop = 0;
   if (r.graph) setTimeout(() => drawGraph(r.graph), 60);
+}
+// other likely readings of a photo / handwriting: one tap solves that one instead
+function renderAlts(source) {
+  const box = $('altReads'), list = $('altList');
+  const alts = (current && current.alts || []).filter((t) => t !== current.text);
+  box.hidden = !alts.length || source === 'calc';
+  list.innerHTML = '';
+  for (const t of alts) {
+    let ok = true;
+    try { solveProblem(t, { degrees }); } catch { ok = false; }
+    if (!ok) continue;
+    const b = document.createElement('button');
+    b.className = 'alt-btn';
+    b.innerHTML = texHTML(safeTex(t));
+    b.addEventListener('click', () => {
+      const others = [current.text, ...alts.filter((x) => x !== t)];
+      solveText(t, { source, alts: others });
+    });
+    list.appendChild(b);
+  }
+  if (!list.children.length) box.hidden = true;
 }
 $('editBtn').addEventListener('click', () => { if (current) openCalcWith(current.text, current.latex); });
 

@@ -136,6 +136,12 @@ math-field::part(virtual-keyboard-toggle), math-field::part(menu-toggle) { displ
 .result-kind { color: var(--accent); font-weight: 700; text-transform: uppercase; font-size: .75rem; letter-spacing: .06em; }
 .problem { overflow-x: auto; font-size: 1.15rem; padding-top: 4px; }
 .photo-note { color: var(--muted); font-size: .85rem; margin-top: 6px; }
+.alt-reads { margin-top: 10px; border-top: 1px solid var(--line); padding-top: 8px; }
+.alt-label { color: var(--muted); font-size: .8rem; font-weight: 600; margin-bottom: 6px; }
+.alt-list { display: flex; flex-wrap: wrap; gap: 8px; }
+.alt-btn { border: 1.5px solid var(--line); border-radius: 12px; padding: 6px 12px; max-width: 100%; overflow-x: auto; color: inherit; background: none; }
+.alt-btn .katex { font-size: 1.2em; }
+.alt-btn:active { border-color: var(--accent); }
 .answer-card { margin-top: 12px; border-radius: 14px; border: 1.5px solid var(--line); padding: 12px 14px; position: relative; }
 .answer-label { color: var(--muted); font-size: .8rem; font-weight: 600; }
 .answer { overflow-x: auto; font-size: 1.35rem; font-weight: 600; padding: 4px 56px 2px 0; }

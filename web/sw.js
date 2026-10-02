@@ -5,7 +5,7 @@ const CORE = [
   'icons/icon-192.png', 'icons/icon-512.png', 'icons/apple-touch-icon.png',
   'vendor/katex/katex.min.js', 'vendor/katex/katex.min.css', 'vendor/mathlive/mathlive.min.js',
   'src/engine/index.js', 'src/engine/parser.js', 'src/engine/rational.js', 'src/engine/cas.js', 'src/engine/print.js',
-  'src/engine/arith.js', 'src/engine/factor.js', 'src/engine/poly.js', 'src/engine/solve.js', 'src/engine/calculus.js', 'src/engine/matrix.js', 'src/engine/geometry.js', 'src/engine/latex.js',
+  'src/engine/arith.js', 'src/engine/factor.js', 'src/engine/poly.js', 'src/engine/solve.js', 'src/engine/calculus.js', 'src/engine/matrix.js', 'src/engine/geometry.js', 'src/engine/latex.js', 'src/engine/advanced.js', 'src/engine/lithuanian.js',
   'src/ocr/model.js', 'src/ocr/preprocess.js', 'src/ocr/recognize.js', 'src/ocr/mfr.js',
   'model/symbols.json', 'model/symbols.bin',
 ];

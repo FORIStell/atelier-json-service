@@ -11,7 +11,8 @@ from transformers import VisionEncoderDecoderModel
 src, data, out = sys.argv[1], sys.argv[2], sys.argv[3]
 EPOCHS = float(sys.argv[4]) if len(sys.argv) > 4 else 2
 SPLIT = int(sys.argv[5]) if len(sys.argv) > 5 else 8
-BATCH, LR_DEC, LR_ENC, WARM = 16, 5e-5, 3e-5, 200
+BATCH, WARM = 16, 200
+LR_DEC, LR_ENC = float(os.environ.get('LR_DEC', '5e-5')), float(os.environ.get('LR_ENC', '3e-5'))
 torch.set_num_threads(os.cpu_count())
 torch.manual_seed(0)
 os.makedirs(out, exist_ok=True)

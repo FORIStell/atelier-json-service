@@ -4,7 +4,7 @@ python finetune_mfr.py <hf_model_dir> <data_dir> <out_dir> [epochs=2] [split=8]
 
 Trains encoder layers >= split, the final encoder norm and the whole decoder. Resumable: a checkpoint is
 written to <out_dir>/ckpt.pt every 200 steps, and the run continues from it when restarted."""
-import json, math, os, random, sys, time
+import json, math, os, random, shutil, sys, time
 import numpy as np, torch
 from transformers import VisionEncoderDecoderModel
 
@@ -96,4 +96,6 @@ while step < TOTAL:
     if step % 1000 == 0 or step == TOTAL:
         print('val loss %.4f  teacher-forced exact %.3f' % validate(), flush=True)
 model.save_pretrained(f'{out}/final')
+for f in ['tokenizer.json', 'tokenizer_config.json', 'special_tokens_map.json', 'generation_config.json', 'preprocessor_config.json']:
+    if os.path.exists(f'{src}/{f}'): shutil.copy(f'{src}/{f}', f'{out}/final/{f}')
 print('saved', flush=True)

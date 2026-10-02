@@ -20,7 +20,7 @@ from transformers import VisionEncoderDecoderModel
 src, out = sys.argv[1], sys.argv[2]
 COPIES = int(sys.argv[3]) if len(sys.argv) > 3 else 2
 SPLIT = int(sys.argv[4]) if len(sys.argv) > 4 else 8
-C = '/home/user/data/crohme'
+C = os.path.join(os.environ.get('MATH_DATA', '/home/user/data'), 'crohme')  # CROHME parquet files
 os.makedirs(out, exist_ok=True)
 torch.set_num_threads(os.cpu_count())
 tok = Tokenizer.from_file(f'{src}/tokenizer.json')

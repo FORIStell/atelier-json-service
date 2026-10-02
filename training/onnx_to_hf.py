@@ -1,7 +1,7 @@
 """Rebuild the PyTorch Pix2Text-MFR (VisionEncoderDecoderModel) from its ONNX export so it can be fine-tuned.
 python onnx_to_hf.py <mfr_onnx_dir> <out_dir>
 Named initializers map directly; anonymous MatMul weights are named after the bias added right after them."""
-import sys, numpy as np, onnx, torch
+import shutil, sys, numpy as np, onnx, torch
 from onnx import numpy_helper
 from transformers import VisionEncoderDecoderConfig, VisionEncoderDecoderModel
 
@@ -48,3 +48,5 @@ missing = [k for k in sd if k not in loaded]
 print('loaded', len(loaded), 'of', len(sd), 'missing:', missing)
 model.load_state_dict(loaded, strict=False)
 model.save_pretrained(out)
+for f in ['tokenizer.json', 'tokenizer_config.json', 'special_tokens_map.json', 'generation_config.json', 'preprocessor_config.json']:
+    shutil.copy(f'{src}/{f}', f'{out}/{f}')

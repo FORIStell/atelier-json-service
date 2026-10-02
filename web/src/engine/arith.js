@@ -1,7 +1,7 @@
 // Step-by-step arithmetic following the order of operations (PEMDAS / BODMAS).
 import { Q, MathError, isQ, toNum, nvPowExact, primeFactors, bgcd, formatNumber } from './rational.js';
 import { rawTex, numTex, tex } from './print.js';
-import { fromRaw, simplify, expand, primePowerMap, extractPower } from './cas.js';
+import { fromRaw, simplify, expand, primePowerMap, extractPower, coeffSplit, mul, div, add, num as numNode } from './cas.js';
 
 // 'cas' leaves hold exact irrational values (like 2√3) when roots are worked out exactly
 const isLit = (r) => r.t === 'num' || r.t === 'cas';
@@ -230,9 +230,60 @@ function ppTex(m) {
 }
 const leafX = (r) => (r.t === 'cas' ? r.x : fromRaw(r));
 const rootIndex = (x) => (x.t === 'pow' && x.e.t === 'num' && isQ(x.e.v) && x.e.v.n === 1n && x.e.v.d > 1n ? x.e.v.d : null);
+// 3/2 + √5/2 -> (3 + √5)/2: a sum with fractional coefficients over one denominator
+function overCommonDen(e) {
+  e = simplify(expand(e));
+  if (e.t !== 'add') return e;
+  let L = 1n;
+  for (const t of e.a) { const [c] = coeffSplit(t); if (!isQ(c)) return e; L = (L * c.d) / bgcd(L, c.d); }
+  if (L === 1n) return e;
+  const top = simplify(expand(mul(numNode(new Q(L)), e)));
+  return { t: 'mul', a: [top, { t: 'pow', b: numNode(new Q(L)), e: numNode(Q.of(-1)) }] };
+}
+// a + b√c  ->  [a, b, c] (a, b rational, c a whole number), else null
+function surd(x) {
+  if (x.t !== 'add' || x.a.length !== 2) return null;
+  const n = x.a.find((t) => t.t === 'num' && isQ(t.v)), o = x.a.find((t) => t !== n);
+  if (!n || !o) return null;
+  const [b, r] = coeffSplit(o);
+  if (!isQ(b) || !r || r.t !== 'pow' || r.b.t !== 'num' || !isQ(r.b.v) || !r.b.v.isInt() || r.e.t !== 'num' || !isQ(r.e.v) || !r.e.v.eq(new Q(1n, 2n))) return null;
+  return [n.v, b, r.b.v];
+}
 function exactApply(node) {
   let x = simplify(fromRaw(node));
   let foil = false;
+  // 2/(1+√2): multiply top and bottom by the conjugate 1-√2
+  if (node.t === 'bin' && node.op === '/') {
+    const sd = surd(leafX(node.r));
+    if (sd) {
+      const [a, b, c] = sd;
+      const conj = add(numNode(a), mul(numNode(b.neg()), { t: 'pow', b: numNode(c), e: numNode(new Q(1n, 2n)) }));
+      const den = a.mul(a).sub(b.mul(b).mul(c));
+      if (!den.isZero()) {
+        const top = simplify(expand(mul(leafX(node.l), conj)));
+        const y = overCommonDen(mul(numNode(den.inv()), top));
+        const lhs = `\\frac{${rawTex(node.l)}}{${rawTex(node.r)}}`, ct = tex(simplify(conj));
+        return { leaf: y.t === 'num' ? { t: 'num', v: y.v, src: fmtSrc(y.v, false) } : { t: 'cas', x: y }, title: 'Rationalize the denominator: multiply top and bottom by the conjugate',
+          detail: `${lhs} = \\frac{${rawTex(node.l)} \\cdot \\left(${ct}\\right)}{\\left(${rawTex(node.r)}\\right)\\left(${ct}\\right)} = \\frac{${tex(top)}}{${numTex(den)}} = ${tex(y)}` };
+      }
+    }
+  }
+  // √(2+√3) = (√6+√2)/2 when a² - b²c is a perfect square d²: √(a+b√c) = √((a+d)/2) ± √((a-d)/2)
+  if (node.t === 'fn' && node.n === 'sqrt') {
+    const sd = surd(leafX(node.a[0]));
+    if (sd) {
+      const [a, b, c] = sd;
+      const d2 = a.mul(a).sub(b.mul(b).mul(c));
+      const d = d2.sign() >= 0 ? nvPowExact(d2, new Q(1n, 2n)) : null;
+      if (d && isQ(d) && a.add(d).sign() > 0 && a.sub(d).sign() >= 0) {
+        const half = (v) => ({ t: 'pow', b: numNode(v.div(Q.of(2))), e: numNode(new Q(1n, 2n)) });
+        const y = overCommonDen(add(half(a.add(d)), mul(numNode(Q.of(b.sign())), half(a.sub(d)))));
+        const p = numTex(a.add(d).div(Q.of(2))), q = numTex(a.sub(d).div(Q.of(2)));
+        return { leaf: { t: 'cas', x: y }, title: 'Un-nest the root: find two numbers that add to the outside part',
+          detail: `\\sqrt{${rawTex(node.a[0])}} = \\sqrt{${p}} ${b.sign() > 0 ? '+' : '-'} \\sqrt{${q}} \\quad\\text{because } \\left(\\sqrt{${p}} ${b.sign() > 0 ? '+' : '-'} \\sqrt{${q}}\\right)^{2} = ${rawTex(node.a[0])}, \\qquad = ${tex(y)}` };
+      }
+    }
+  }
   if (node.t === 'bin' && (node.op === '*' || node.op === '^') && ((x.t === 'mul' && x.a.some((f) => f.t === 'add' || (f.t === 'pow' && f.b.t === 'add'))) || (x.t === 'pow' && x.b.t === 'add'))) {
     const y = simplify(expand(x)); // (2+√3)(2-√3) -> 1
     if (tex(y).length < tex(x).length) { x = y; foil = true; }
@@ -295,8 +346,9 @@ function exactApply(node) {
       return { leaf, title: node.op === '*' ? 'Multiply' : 'Divide', detail: `${lhs} = ${res}` };
     }
     if (node.op === '^') return { leaf, title: 'Evaluate the exponent', detail: `${lhs}${ppX && ppX !== res ? ` = ${ppX}` : ''} = ${res}` };
-    if (x.t === 'add' && x.a.length === 2) return { leaf, silent: true }; // nothing to combine, e.g. 1 + √2
-    return { leaf, title: node.op === '+' ? 'Add like roots' : 'Subtract like roots', detail: `${lhs} = ${res}` };
+    const nTerms = (y) => (y.t === 'add' ? y.a.length : 1);
+    if (x.t === 'add' && x.a.length === nTerms(A) + nTerms(B)) return { leaf, silent: true }; // nothing to combine, e.g. 1 + √2
+    return { leaf, title: node.op === '+' ? 'Add: combine like terms' : 'Subtract: combine like terms', detail: `${lhs} = ${res}` };
   }
   return { leaf, title: 'Simplify', detail: `${rawTex(node)} = ${res}` };
 }

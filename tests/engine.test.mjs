@@ -83,6 +83,14 @@ const cases = [
   ['sqrt(12)/sqrt(3)', '2'],
   ['(sqrt(3))^2', '3'],
   ['sqrt(2) root(3, 2)', '32^(1/6)'],
+  ['2/(1+sqrt(2))', '-2 + 2*sqrt(2)'],
+  ['(sqrt(5)+1)/(sqrt(5)-1)', '(3 + sqrt(5))/2'],
+  ['sqrt(2+sqrt(3))', '(sqrt(2) + sqrt(6))/2'],
+  ['(2+sqrt(3))*(2-sqrt(3))', '1'],
+  ['(1+sqrt(2))^2', '3 + 2*sqrt(2)'],
+  ['log(5)+log(2)', '1'],
+  ['2log(5)+log(4)', '2'],
+  ['ln(6)-ln(3)-ln(2)', '0'],
 ];
 for (const [q, want] of cases) {
   test(q, () => {

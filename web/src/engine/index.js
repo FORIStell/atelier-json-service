@@ -159,6 +159,9 @@ function arithmetic(src, opts, res, inputTex, raw) {
     const isExactNum = exact.t === 'num';
     return res('arithmetic', 'Evaluate', inputTex || rawTex(raw), steps, `${tex(exact)}${isExactNum ? '' : ` \\approx ${formatNumber(v)}`}`, isExactNum ? text(exact) : `${text(exact)} ≈ ${formatNumber(v)}`);
   }
+  // log(5) + log(2): use the log rules instead of decimals
+  const lr = logRuleSteps(raw);
+  if (lr) return res('arithmetic', 'Calculate', inputTex || rawTex(raw), lr.steps, tex(lr.value), text(lr.value));
   // roots that don't come out even: keep them exact (√12 -> 2√3), decimal only as the last step
   const ex = arithmeticSteps(raw, { ...opts, exact: true });
   if (ex && ex.exact) {
@@ -179,6 +182,38 @@ function arithmetic(src, opts, res, inputTex, raw) {
     } catch { /* keep decimal */ }
   }
   return res('arithmetic', 'Calculate', inputTex || rawTex(raw), r.steps, r.answerTex, r.answerText);
+}
+
+// sums/differences of logs with one base whose combined value is exact: log a + log b = log(ab), log a - log b = log(a/b)
+function logRuleSteps(raw) {
+  const node = fromRaw(raw);
+  if (node.t !== 'add') return null;
+  const terms = [];
+  (function flat(x) { if (x.t === 'add') x.a.forEach(flat); else terms.push(x); })(node);
+  let base = null, prod = Q.of(1);
+  const parts = [];
+  for (const t of terms) {
+    let k = Q.of(1), f = t;
+    if (t.t === 'mul' && t.a.length === 2 && t.a[0].t === 'num' && isQ(t.a[0].v) && t.a[0].v.isInt()) { k = t.a[0].v; f = t.a[1]; }
+    if (f.t !== 'fn' || (f.n !== 'log' && f.n !== 'ln') || f.a[0].t !== 'num' || !isQ(f.a[0].v) || f.a[0].v.sign() <= 0) return null;
+    const b = f.n === 'ln' ? 'e' : f.a[1] && f.a[1].t === 'num' ? f.a[1].v.toString() : null;
+    if (!b || (base && b !== base)) return null;
+    base = b;
+    prod = prod.mul(f.a[0].v.powInt(k.n));
+    parts.push([k, f]);
+  }
+  const value = simplify(node);
+  if (value.t !== 'num') return null;
+  const f0 = parts[0][1];
+  const L = (x) => (f0.n === 'ln' ? `\\ln\\left(${x}\\right)` : base === '10' ? `\\log\\left(${x}\\right)` : `\\log_{${base}}\\left(${x}\\right)`);
+  const anyPow = parts.some(([k]) => !k.abs().isOne());
+  const steps = [{ title: 'Start with the problem', math: rawTex(raw) }];
+  if (anyPow) steps.push({ title: 'Power rule: $k\\log a = \\log a^k$', math: parts.map(([k, f], i) => `${i && k.sign() > 0 ? '+ ' : k.sign() < 0 ? '- ' : ''}${L(k.abs().isOne() ? tex(f.a[0]) : `${tex(f.a[0])}^{${k.abs()}}`)}`).join(' ') });
+  const prodTex = parts.map(([k, f]) => (k.sign() > 0 ? `${tex(f.a[0])}${k.isOne() ? '' : `^{${k}}`}` : null)).filter(Boolean).join(' \\cdot ') || '1';
+  const denTex = parts.map(([k, f]) => (k.sign() < 0 ? `${tex(f.a[0])}${k.abs().isOne() ? '' : `^{${k.abs()}}`}` : null)).filter(Boolean).join(' \\cdot ');
+  steps.push({ title: 'Product and quotient rules: $\\log a + \\log b = \\log(ab)$, $\\log a - \\log b = \\log\\frac{a}{b}$', math: `${L(denTex ? `\\frac{${prodTex}}{${denTex}}` : prodTex)} = ${L(tex(num(prod)))}` });
+  steps.push({ title: 'Evaluate the logarithm', detail: f0.n === 'ln' ? `\\ln(1) = 0` : `${base}^{${tex(value)}} = ${tex(num(prod))}`, math: tex(value) });
+  return { steps, value };
 }
 
 function simplifyProblem(src, opts, res, raw) {

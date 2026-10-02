@@ -254,6 +254,25 @@ function simpAdd(terms) {
     }
     void kk;
   }
+  // log(5) + log(2) = log(10) = 1: combine logs with the same base when the result comes out exact
+  const logs = new Map();
+  for (const [kk, g] of groups) {
+    const r = g[1];
+    if (!r || r.t !== 'fn' || (r.n !== 'log' && r.n !== 'ln') || !isQ(g[0]) || !g[0].isInt() || r.a[0].t !== 'num' || !isQ(r.a[0].v) || r.a[0].v.sign() <= 0) continue;
+    const base = r.n === 'ln' ? 'e' : r.a[1] && r.a[1].t === 'num' && isQ(r.a[1].v) ? r.a[1].v.toString() : null;
+    if (!base) continue;
+    if (!logs.has(base)) logs.set(base, []);
+    logs.get(base).push(kk);
+  }
+  for (const [base, ks] of logs) {
+    if (ks.length < 2) continue;
+    let prod = Q.of(1);
+    for (const kk of ks) { const [k, r] = groups.get(kk); prod = prod.mul(r.a[0].v.powInt(k.n)); }
+    const v = base === 'e' ? (prod.isOne() ? Q.of(0) : null) : exactLog(prod, groups.get(ks[0])[1].a[1].v);
+    if (v === null) continue;
+    c = nvAdd(c, v);
+    for (const kk of ks) groups.delete(kk);
+  }
   const out = [];
   for (const [k, rest] of groups.values()) {
     if (nvIsZero(k)) continue;

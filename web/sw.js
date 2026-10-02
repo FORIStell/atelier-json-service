@@ -1,5 +1,5 @@
 // Offline support: cache the app shell, the engine, the model and KaTeX.
-const VERSION = 'mathbot-v8';
+const VERSION = 'mathbot-v9';
 const CORE = [
   './', 'index.html', 'style.css', 'app.js', 'manifest.webmanifest',
   'icons/icon-192.png', 'icons/icon-512.png', 'icons/apple-touch-icon.png',

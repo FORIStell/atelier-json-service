@@ -1,8 +1,10 @@
 // Step-by-step arithmetic following the order of operations (PEMDAS / BODMAS).
 import { Q, MathError, isQ, toNum, nvPowExact, primeFactors, bgcd, formatNumber } from './rational.js';
-import { rawTex, numTex } from './print.js';
+import { rawTex, numTex, tex } from './print.js';
+import { fromRaw, simplify, expand, primePowerMap, extractPower } from './cas.js';
 
-const isLit = (r) => r.t === 'num';
+// 'cas' leaves hold exact irrational values (like 2√3) when roots are worked out exactly
+const isLit = (r) => r.t === 'num' || r.t === 'cas';
 const lit = (v, decimal) => ({ t: 'num', v, src: fmtSrc(v, decimal) });
 function fmtSrc(v, decimal) {
   if (!isQ(v)) return formatNumber(v);
@@ -51,7 +53,7 @@ function replaceAt(r, path, val) {
 function tidy(r, decimal) {
   const f = (x) => tidy(x, decimal);
   switch (r.t) {
-    case 'paren': { const a = f(r.a); return isLit(a) && (!isQ(a.v) || a.v.sign() >= 0 || true) && a.t === 'num' ? a : { ...r, a }; }
+    case 'paren': { const a = f(r.a); return isLit(a) ? a : { ...r, a }; }
     case 'neg': { const a = f(r.a); return isLit(a) ? lit(isQ(a.v) ? a.v.neg() : -a.v, decimal) : { ...r, a }; }
     case 'bin': {
       const l = f(r.l), rr = f(r.r);
@@ -205,6 +207,100 @@ function apply(node, decimal, opts) {
   }
   throw new MathError('Cannot evaluate');
 }
+// ---- exact steps for roots: keep √2, ∛4 ... instead of decimals ----
+const ALGEBRAIC = new Set(['sqrt', 'cbrt', 'root', 'abs']);
+class NotExact extends Error {}
+// value as primes -> exponent (2∛4 -> {2: 5/3}); null if it is not a product of numbers and their roots
+function ppMap(x) {
+  if (x.t === 'num' && isQ(x.v) && x.v.sign() > 0) return primePowerMap(x.v);
+  if (x.t === 'pow' && x.b.t === 'num' && isQ(x.b.v) && x.b.v.sign() > 0 && x.e.t === 'num' && isQ(x.e.v)) {
+    const m = new Map(); for (const [p, e] of primePowerMap(x.b.v)) m.set(p, e.mul(x.e.v)); return m;
+  }
+  if (x.t === 'mul') {
+    const m = new Map();
+    for (const f of x.a) { const fm = ppMap(f); if (!fm) return null; for (const [p, e] of fm) m.set(p, (m.get(p) || Q.of(0)).add(e)); }
+    for (const [p, e] of m) if (e.isZero()) m.delete(p);
+    return m;
+  }
+  return null;
+}
+function ppTex(m) {
+  if (!m || !m.size || m.size > 4) return null;
+  return [...m].sort((a, b) => (a[0] < b[0] ? -1 : 1)).map(([p, e]) => (e.eq(Q.of(1)) ? `${p}` : `${p}^{${numTex(e)}}`)).join(' \\cdot ');
+}
+const leafX = (r) => (r.t === 'cas' ? r.x : fromRaw(r));
+const rootIndex = (x) => (x.t === 'pow' && x.e.t === 'num' && isQ(x.e.v) && x.e.v.n === 1n && x.e.v.d > 1n ? x.e.v.d : null);
+function exactApply(node) {
+  let x = simplify(fromRaw(node));
+  let foil = false;
+  if (node.t === 'bin' && (node.op === '*' || node.op === '^') && ((x.t === 'mul' && x.a.some((f) => f.t === 'add' || (f.t === 'pow' && f.b.t === 'add'))) || (x.t === 'pow' && x.b.t === 'add'))) {
+    const y = simplify(expand(x)); // (2+√3)(2-√3) -> 1
+    if (tex(y).length < tex(x).length) { x = y; foil = true; }
+  }
+  (function check(y) {
+    if (y.t === 'fn' && !ALGEBRAIC.has(y.n)) throw new NotExact();
+    if (y.t === 'sym') throw new NotExact();
+    for (const k of ['a', 'b', 'e']) if (y[k]) (Array.isArray(y[k]) ? y[k] : [y[k]]).forEach(check);
+  })(x);
+  const leaf = x.t === 'num' ? { t: 'num', v: x.v, src: fmtSrc(x.v, false) } : { t: 'cas', x };
+  const res = tex(x);
+  const ppX = ppTex(ppMap(x));
+  if (node.t === 'fn') {
+    const k = node.n === 'sqrt' ? 2n : node.n === 'cbrt' ? 3n : BigInt(toNum(node.a[0].v));
+    const radR = node.n === 'root' ? node.a[1] : node.a[0];
+    const sym = (inner) => (k === 2n ? `\\sqrt{${inner}}` : `\\sqrt[${k}]{${inner}}`);
+    const lhs = sym(rawTex(radR));
+    if (radR.t === 'num' && isQ(radR.v) && radR.v.isInt() && radR.v.sign() > 0) {
+      const [o, rest] = extractPower(radR.v.n, k);
+      if (o === 1n) return { leaf, silent: true }; // √6 stays √6
+      const why = `${sym(`${o}^{${k}} \\cdot ${rest}`)} = ${res}`;
+      return { leaf, title: 'Simplify the root: take out the perfect power', detail: `${lhs} = ${rest === 1n ? res : why}` };
+    }
+    if (radR.t === 'num') return { leaf, silent: rawTex({ t: 'cas', x }) === lhs, title: 'Simplify the root', detail: `${lhs} = ${res}` };
+    const inner = ppMap(leafX(radR));
+    const parts = leafX(radR).t === 'mul' ? leafX(radR).a.map((f) => ppTex(ppMap(f))) : null;
+    let detail = lhs;
+    if (inner && ppTex(inner)) {
+      if (parts && parts.every(Boolean) && parts.join(' \\cdot ') !== ppTex(inner)) detail += ` = \\left(${parts.join(' \\cdot ')}\\right)^{\\frac{1}{${k}}}`;
+      detail += ` = \\left(${ppTex(inner)}\\right)^{\\frac{1}{${k}}}`;
+      if (ppX && ppX !== res) detail += ` = ${ppX}`;
+    }
+    detail += ` = ${res}`;
+    return { leaf, title: inner ? 'Take the root: write as powers and multiply the exponents' : 'Take the root', detail };
+  }
+  if (node.t === 'bin') {
+    const A = leafX(node.l), B = leafX(node.r);
+    const sumLeaf = (r) => r.t === 'cas' && r.x.t === 'add';
+    const lt = sumLeaf(node.l) && node.op !== '+' ? `\\left(${rawTex(node.l)}\\right)` : rawTex(node.l);
+    const rt = sumLeaf(node.r) && node.op !== '+' && node.op !== '^' ? `\\left(${rawTex(node.r)}\\right)` : rawTex(node.r);
+    const opTex = { '+': '+', '-': '-', '*': '\\cdot', '/': '\\div', '^': '^' }[node.op];
+    const lhs = node.op === '^' ? `\\left(${rawTex(node.l)}\\right)^{${rt}}` : node.op === '/' ? `\\frac{${lt}}{${rt}}` : `${lt} ${opTex} ${rt}`;
+    if (foil) return { leaf, title: node.op === '^' ? 'Multiply out the brackets' : 'Multiply out the brackets (every term times every term)', detail: `${lhs} = ${res}` };
+    if (tex(simplify(fromRaw(node))) === lhs.replace(' \\cdot ', '')) return { leaf, silent: true };
+    if (node.op === '*' || node.op === '/') {
+      const ka = rootIndex(A), kb = rootIndex(B);
+      if (node.op === '*' && ka && ka === kb && A.b.t === 'num' && B.b.t === 'num') {
+        const k = ka, prod = A.b.v.mul(B.b.v);
+        const sym = (v) => (k === 2n ? `\\sqrt{${v}}` : `\\sqrt[${k}]{${v}}`);
+        return { leaf, title: 'Multiply the roots (same index: multiply the numbers inside)', detail: `${lhs} = ${sym(`${numTex(A.b.v)} \\cdot ${numTex(B.b.v)}`)} = ${sym(numTex(prod))}${tex(x) !== sym(numTex(prod)) ? ` = ${res}` : ''}` };
+      }
+      if (node.op === '/' && B.t === 'pow' && rootIndex(B) === 2n && A.t === 'num') {
+        return { leaf, title: 'Rationalize the denominator (multiply top and bottom by the root)', detail: `${lhs} = \\frac{${lt} \\cdot ${rt}}{${rt} \\cdot ${rt}} = ${res}` };
+      }
+      const pa = ppTex(ppMap(A)), pb = ppTex(ppMap(B));
+      if (pa && pb && ppX) {
+        const mid = node.op === '*' ? `${pa} \\cdot ${pb}` : `\\frac{${pa}}{${pb}}`;
+        return { leaf, title: node.op === '*' ? 'Multiply: same base, so add the exponents' : 'Divide: same base, so subtract the exponents', detail: `${lhs} = ${mid} = ${ppX}${ppX !== res ? ` = ${res}` : ''}` };
+      }
+      return { leaf, title: node.op === '*' ? 'Multiply' : 'Divide', detail: `${lhs} = ${res}` };
+    }
+    if (node.op === '^') return { leaf, title: 'Evaluate the exponent', detail: `${lhs}${ppX && ppX !== res ? ` = ${ppX}` : ''} = ${res}` };
+    if (x.t === 'add' && x.a.length === 2) return { leaf, silent: true }; // nothing to combine, e.g. 1 + √2
+    return { leaf, title: node.op === '+' ? 'Add like roots' : 'Subtract like roots', detail: `${lhs} = ${res}` };
+  }
+  return { leaf, title: 'Simplify', detail: `${rawTex(node)} = ${res}` };
+}
+
 // column multiplication with partial products, for whole numbers with 2+ digits
 function longMultiply(a, b) {
   const neg = (a < 0n) !== (b < 0n);
@@ -245,27 +341,43 @@ function hasDecimal(r) {
 }
 
 export function arithmeticSteps(raw, opts = {}) {
+  if (opts.exact) {
+    try { return arithmeticStepsInner(raw, opts); } catch (e) { if (e instanceof NotExact) return null; throw e; }
+  }
+  return arithmeticStepsInner(raw, opts);
+}
+function arithmeticStepsInner(raw, opts) {
   const decimal = hasDecimal(raw);
   const steps = [];
   let cur = tidy(raw, decimal);
   steps.push({ title: 'Start with the problem', math: rawTex(cur) });
   let guard = 0;
-  while (cur.t !== 'num' && guard++ < 120) {
+  const exact = !!opts.exact && !decimal;
+  while (cur.t !== 'num' && cur.t !== 'cas' && guard++ < 120) {
     // fold degree markers inside trig silently
     const cands = candidates(cur);
     if (!cands.length) throw new MathError('I could not simplify this expression');
     cands.sort((a, b) => b.depth - a.depth || b.prio - a.prio || a.idx - b.idx);
     // with degrees symbol inside a trig function treat as degrees
     const c = cands[0];
-    let res;
-    if (c.node.t === 'fn' && trig[c.node.n] && c.node.a[0].deg) res = apply(c.node, decimal, { ...opts, degrees: true });
+    let res, newNode;
+    const kids = c.node.t === 'bin' ? [c.node.l, c.node.r] : Array.isArray(c.node.a) ? c.node.a : [c.node.a];
+    if (exact && kids.some((k) => k.t === 'cas')) res = exactApply(c.node);
+    else if (c.node.t === 'fn' && trig[c.node.n] && c.node.a[0].deg) res = apply(c.node, decimal, { ...opts, degrees: true });
     else res = apply(c.node, decimal, opts);
-    let newNode = lit(res.v, decimal);
+    if (exact && !res.leaf && !isQ(res.v)) res = exactApply(c.node); // irrational: work it out exactly instead
+    if (res.leaf) {
+      cur = tidy(replaceAt(cur, c.path, res.leaf), decimal);
+      if (!res.silent) steps.push({ title: res.title, detail: res.detail, math: rawTex(cur) });
+      continue;
+    }
+    newNode = lit(res.v, decimal);
     if (c.node.t === 'deg') newNode = { ...newNode, deg: true };
     cur = tidy(replaceAt(cur, c.path, newNode), decimal);
     if (c.node.t === 'deg') continue;
     steps.push({ title: res.title, detail: res.detail, math: rawTex(cur) });
   }
+  if (cur.t === 'cas') return { steps, value: null, exact: cur.x };
   const v = cur.v;
   const answer = show(v, decimal);
   let approx = null;

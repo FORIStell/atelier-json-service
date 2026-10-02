@@ -25,6 +25,7 @@ export function fromRaw(r, opts = {}) {
   const f = (x) => fromRaw(x, opts);
   switch (r.t) {
     case 'num': return num(r.v);
+    case 'cas': return r.x;
     case 'sym':
       if (r.n === 'oo') return INF;
       return sym(r.n);
@@ -302,19 +303,31 @@ function simpMul(factors, opts = {}) {
       }
     }
   }
-  // merge numeric-base radicals: sqrt(2)*sqrt(3) -> sqrt(6) (same rational exponent)
-  const rad = new Map(), keep = [];
+  // merge numeric-base radicals through prime powers: sqrt(2)*sqrt(6) -> 2 sqrt(3), 2^(1/6)*4^(1/18) -> 2^(5/18) -> root(18, 32)
+  const primes = new Map(), keep = [];
   for (const f of out) {
     if (f.t === 'pow' && f.b.t === 'num' && isQ(f.b.v) && f.e.t === 'num' && isQ(f.e.v) && !f.e.v.isInt() && f.b.v.sign() > 0) {
-      const k = f.e.v.toString();
-      if (rad.has(k)) rad.get(k).b = rad.get(k).b.mul(f.b.v); else rad.set(k, { b: f.b.v, e: f.e.v });
+      for (const [p, k] of primePowerMap(f.b.v)) {
+        const e = k.mul(f.e.v), old = primes.get(p);
+        primes.set(p, old ? old.add(e) : e);
+      }
     } else keep.push(f);
   }
-  for (const { b, e } of rad.values()) {
-    const p = simpPow(num(b), num(e), opts);
-    if (p.t === 'num') c = nvMul(c, p.v);
-    else if (p.t === 'mul') { for (const q of p.a) { if (q.t === 'num') c = nvMul(c, q.v); else keep.push(q); } }
-    else keep.push(p);
+  if (primes.size) {
+    // whole parts of the exponents go to the coefficient; the rest share one root index
+    let L = 1n, inner = 1n;
+    for (const e of primes.values()) L = (L * e.d) / bgcd(L, e.d);
+    for (const [p, e] of primes) {
+      const fl = e.n / e.d - (e.n < 0n && e.n % e.d !== 0n ? 1n : 0n);
+      c = nvMul(c, new Q(p).powInt(fl));
+      inner *= p ** ((e.n - fl * e.d) * (L / e.d));
+    }
+    if (inner !== 1n) {
+      const p = simpRadical(new Q(inner), new Q(1n, L));
+      if (p.t === 'num') c = nvMul(c, p.v);
+      else if (p.t === 'mul') { for (const q of p.a) { if (q.t === 'num') c = nvMul(c, q.v); else keep.push(q); } }
+      else keep.push(p);
+    }
   }
   if (nvIsZero(c)) return num(0);
   keep.sort(factorCompare);
@@ -347,7 +360,19 @@ function simpRadical(base, e) {
   if (coef.isOne()) return radNode;
   return { t: 'mul', a: [num(coef), radNode] };
 }
-function extractPower(n, k) {
+// n (positive rational) as primes -> exponent; a factor that can't be split stays whole
+export function primePowerMap(n) {
+  const m = new Map();
+  const addAll = (x, sgn) => {
+    if (x <= 1n) return;
+    const fs = primeFactors(x);
+    if (!fs.length || fs[fs.length - 1] > 10n ** 12n) { m.set(x, (m.get(x) || Q.of(0)).add(Q.of(sgn))); return; }
+    for (const p of fs) m.set(p, (m.get(p) || Q.of(0)).add(Q.of(sgn)));
+  };
+  addAll(n.n, 1); addAll(n.d, -1);
+  return m;
+}
+export function extractPower(n, k) {
   // n = out^k * rest
   if (n <= 1n) return [1n, n];
   let out = 1n, rest = 1n;

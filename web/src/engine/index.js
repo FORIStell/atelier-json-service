@@ -159,6 +159,14 @@ function arithmetic(src, opts, res, inputTex, raw) {
     const isExactNum = exact.t === 'num';
     return res('arithmetic', 'Evaluate', inputTex || rawTex(raw), steps, `${tex(exact)}${isExactNum ? '' : ` \\approx ${formatNumber(v)}`}`, isExactNum ? text(exact) : `${text(exact)} ≈ ${formatNumber(v)}`);
   }
+  // roots that don't come out even: keep them exact (√12 -> 2√3), decimal only as the last step
+  const ex = arithmeticSteps(raw, { ...opts, exact: true });
+  if (ex && ex.exact) {
+    const v = evalNum(ex.exact);
+    ex.steps.push({ title: 'Decimal value (if you need it)', math: `${tex(ex.exact)} \\approx ${formatNumber(v)}` });
+    return res('arithmetic', 'Calculate', inputTex || rawTex(raw), ex.steps, tex(ex.exact), text(ex.exact));
+  }
+  if (ex) return res('arithmetic', 'Calculate', inputTex || rawTex(raw), ex.steps, ex.answerTex, ex.answerText);
   const r = arithmeticSteps(raw, opts);
   if (!isQ(r.value)) {
     // irrational result: also give the exact simplified form (e.g. sqrt(50) = 5*sqrt(2))

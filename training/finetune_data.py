@@ -20,6 +20,7 @@ from transformers import VisionEncoderDecoderModel
 src, out = sys.argv[1], sys.argv[2]
 COPIES = int(sys.argv[3]) if len(sys.argv) > 3 else 2
 SPLIT = int(sys.argv[4]) if len(sys.argv) > 4 else 8
+SEED = int(os.environ.get('SEED', '0'))  # different augmentations for a second round
 C = os.path.join(os.environ.get('MATH_DATA', '/home/user/data'), 'crohme')  # CROHME parquet files
 os.makedirs(out, exist_ok=True)
 torch.set_num_threads(os.cpu_count())
@@ -137,7 +138,7 @@ def main():
         batch = []
         for j in range(s0, min(N, s0 + B)):
             copy, k = divmod(j, len(items))
-            rng = random.Random(j * 7919 + 13)
+            rng = random.Random(j * 7919 + 13 + SEED)
             b, kind, _ = items[k]
             a = crop(to_gray(b, kind), rng)
             strength = 0.4 if copy == 0 else 1.0

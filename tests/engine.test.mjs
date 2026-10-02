@@ -44,7 +44,7 @@ const cases = [
   ['simplify (x^2-9)/(x+3)', 'x - 3'],
   ['prime factorization of 360', '2^3 × 3^2 × 5'],
   ['solve for y: 2x+3y=6', 'y = (-2*x + 6)/3'],
-  ['sqrt(50)', '5*sqrt(2) ≈ 7.071067812'],
+  ['sqrt(50)', '5*sqrt(2)'],
   ['solve x^2-2x-1=0 for x', 'x = 1 - sqrt(2), x = 1 + sqrt(2)'],
   ['what is 25% of 200', '50'],
   ['evaluate 2x^2-3 at x=4', '29'],
@@ -75,6 +75,14 @@ const cases = [
   ['simplify (x^3-1)/(x-1)', 'x^2 + x + 1'],
   ['simplify (x^2-1)/(x^2+2x+1)', '(x - 1)/(x + 1)'],
   ['simplify (x+1)/(2x+2)', '1/2'],
+  // roots stay exact
+  ['root(6, 2 root(3, 2^2))', '32^(1/18)'],
+  ['sqrt(2)*sqrt(6)', '2*sqrt(3)'],
+  ['1/sqrt(6)', 'sqrt(6)/6'],
+  ['sqrt(8)+sqrt(2)', '3*sqrt(2)'],
+  ['sqrt(12)/sqrt(3)', '2'],
+  ['(sqrt(3))^2', '3'],
+  ['sqrt(2) root(3, 2)', '32^(1/6)'],
 ];
 for (const [q, want] of cases) {
   test(q, () => {
@@ -83,5 +91,12 @@ for (const [q, want] of cases) {
     assert.ok(r.steps.length > 0);
   });
 }
+test('exact root steps have no decimals until the last step', () => {
+  for (const q of ['root(6, 2 root(3, 2^2))', 'sqrt(12)/sqrt(3)', '3sqrt(2)-sqrt(18)+(2+1)^2']) {
+    const r = solveProblem(q);
+    const body = r.steps.filter((s) => !/Decimal value/.test(s.title));
+    for (const s of body) assert.ok(!/\d\.\d{3}/.test((s.math || '') + (s.detail || '')), q + ': ' + s.title);
+  }
+});
 test('degree mode', () => assert.equal(solveProblem('sin(30)', { degrees: true }).answerText, '1/2 ≈ 0.5'));
 test('bad input gives a friendly error', () => assert.throws(() => solveProblem('2+*'), /./));

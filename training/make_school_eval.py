@@ -6,7 +6,8 @@ OUT = sys.argv[1]
 SKIP = int(sys.argv[2]) if len(sys.argv) > 2 else 0
 skipped = 0
 ok = set(list('0123456789xyabnct+-=()<>') + ['\\times', '\\div', '\\frac', '^', '{', '}', '\\sqrt', '\\pi', '\\leq', '\\geq', '\\left(', '\\right)'])
-rows = pq.read_table('/home/user/data/crohme/2019-00000-of-00001.parquet').to_pylist()
+import os
+rows = pq.read_table(os.environ.get('SRC', '/home/user/data/crohme/2019-00000-of-00001.parquet')).to_pylist()
 random.seed(3); random.shuffle(rows)
 items = []
 for r in rows:

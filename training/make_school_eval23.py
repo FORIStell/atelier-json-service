@@ -6,6 +6,8 @@ OUT = sys.argv[1]
 N = int(sys.argv[2]) if len(sys.argv) > 2 else 200
 ok_cmd = {'\\frac', '\\sqrt', '\\pi', '\\times', '\\div', '\\leq', '\\geq', '\\left', '\\right', '\\cdot', '\\le', '\\ge'}
 rows = pq.read_table('/home/user/data/crohme/c2023.parquet').to_pylist()
+START = int(sys.argv[3]) if len(sys.argv) > 3 else 0  # 3000: rows the fine-tuned reader never trains on (finetune_data.py uses rows < 2900)
+rows = rows[START:]
 random.seed(5); random.shuffle(rows)
 items = []
 for r in rows:

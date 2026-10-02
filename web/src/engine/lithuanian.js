@@ -14,6 +14,7 @@ export function isLithuanian(s) { return LT_LETTERS.test(s) || LT_WORDS.test(s);
 // Plain-text clean-up used for every Lithuanian problem
 function clean(s) {
   return unicodeMath(s)
+    .replace(/\([^()]*\s[–—]\s[^()]*\)/g, '')           // remarks such as (s – metrais, t – sekundėmis)
     .replace(/(\d),(\d)/g, '$1.$2')            // 0,2 -> 0.2 (decimal comma)
     .replace(/[·∙⋅]/g, '*')
     .replace(/−|–/g, '-')
@@ -27,8 +28,11 @@ function clean(s) {
 
 // the longest run of "math-looking" words: numbers, operators, single letters, function names, brackets
 const FN = /^(sin|cos|tan|cot|asin|acos|atan|arcsin|arccos|arctan|log|lg|ln|sqrt|root|abs|pi|nCr|nPr|e)(?=$|[_(^\d])/;
+const LT_SHORT = new Set(['ir', 'su', 'ar', 'po', 'be', 'jo', 'ne', 'to', 'ta', 'iš', 'už', 'nė', 'jį', 'ją', 'kai', 'tai', 'nei', 'kad', 'per', 'iki', 'nuo', 'yra', 'ko']);
 function isMathToken(w) {
   if (!w) return false;
+  if (/^(?:\.\.\.|…)[,;]?$/.test(w)) return true;
+  if (/^[a-z]{2}[,.;]?$/.test(w) && !LT_SHORT.has(w.replace(/[,.;]$/, ''))) return true; // kx, dx, ab
   const c = w.replace(/^[([{]+|[)\]},.;:?!]+$/g, '');
   if (!c) return /[()[\]{}]/.test(w);
   if (/^[a-zA-Z]$/.test(c)) return true;                                   // x, a, m
@@ -76,6 +80,8 @@ const body = (m) => m.replace(/^\s*(?:[a-zA-Z]\s*\(\s*[a-zα-ω]\s*\)|y)\s*=\s*/
 export function fromLithuanian(raw) {
   if (!isLithuanian(raw)) return null;
   const s = clean(raw), f = fold(s);
+  // a story problem with only numbers and units in it (no formula to solve): say so instead of guessing
+  const story = () => /\?|\b(kiek|koks|kokia|kokio|kelint|po kiek|per kiek)\b/.test(f) && !/[=<>^∫√]|\b(sin|cos|tan|log|lg|ln|sqrt|f\(x\))/.test(s);
   const after = s.match(/\btai\s+(.+)$/);           // "Kai x ≠ 3, tai <expression> ="
   const M = mathRun(after ? after[1] : s);
   let m;
@@ -240,10 +246,12 @@ export function fromLithuanian(raw) {
   }
   // ---- simplify / calculate
   if (/suprastink/.test(f)) return `simplify ${core}`;
+  if (story() && !/[-+*/^]/.test(core)) return '__STORY__';
   if (/apskaiciuok|raskite|nustatykite|kam lygu|lygus|lygi/.test(f) && core) {
     if (interval && /=/.test(core)) return `${core}${interval}`;
     if (!/=|∫|d\/d|lim|sum|\.\.\./.test(core) && /(^|[^a-z])[a-df-z](?![a-z(])/i.test(core.replace(/\b(sin|cos|tan|cot|log|lg|ln|sqrt|root|abs|pi|nCr|nPr|asin|acos|atan)\b/g, ''))) return `simplify ${core}`;
     return core;
   }
+  if (story() && !/[-+*/^]/.test(core)) return '__STORY__';
   return core || null;
 }

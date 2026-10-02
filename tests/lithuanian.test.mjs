@@ -15,3 +15,14 @@ const cases = [
   ['Išspręskite lygtį tg x - 1 = 0, kai x ∈ (90°; 270°).', 'x = 225'],
 ];
 for (const [q, want] of cases) test(q, () => assert.equal(solveProblem(q, q.includes('°') ? { degrees: true } : {}).answerText, want));
+
+// VBE-style word problems
+const words = [
+  ['Prekės kaina pirmiausia padidinta 20 %, paskui sumažinta 20 %. Keliais procentais pasikeitė pradinė kaina?', 'decreased by % = 4'],
+  ['Vienas meistras darbą atlieka per 6 h, kitas – per 12 h. Per kiek laiko jie atliks jį dirbdami kartu?', 't = 4'],
+  ['Dėžėje 5 raudoni ir 7 mėlyni rutuliai. Atsitiktinai traukiami 2. Kokia tikimybė, kad abu raudoni?', 'P = 5/33'],
+  ['Aritmetinės progresijos a₃ = 7, a₁₀ = 28. Raskite a₁, d ir S₂₀.', 'a1 = 1, d = 3, S20 = 590'],
+  ['Automobilis per 3 valandas nuvažiavo 210 km. Koks jo vidutinis greitis?', 'v = 70'],
+];
+for (const [q, want] of words) test(q, () => assert.equal(solveProblem(q).answerText, want));
+test('unknown story problems say so', () => assert.throws(() => solveProblem('Kiek yra trijų skaitmenų skaičių, kurių visi skaitmenys lyginiai?'), /word problem/));

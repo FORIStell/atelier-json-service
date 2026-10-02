@@ -8,6 +8,7 @@ import { grayFromImage, binarize } from './src/ocr/preprocess.js';
 import { recognizeMask } from './src/ocr/recognize.js';
 import { cleanOcrText, textScore } from './src/ocr/text.js';
 import { TOPICS, generate, similar, check } from './src/practice.js';
+import { ask, contextMessage, userMessage, errorText, renderAI, imageForAI } from './src/ai.js';
 import { lang, setLang, trStep, trKind, trAnswer, trError, applyUI, ui } from './src/i18n.js';
 
 const $ = (id) => document.getElementById(id);
@@ -30,7 +31,7 @@ let degrees = store.get('degrees', false);
 function syncAngle() { $('angleLabel').textContent = ui(degrees ? 'Degrees' : 'Radians'); document.querySelectorAll('[data-angle]').forEach((b) => { b.textContent = degrees ? 'deg' : 'rad'; }); }
 
 // ================================================================ sheets
-const SHEETS = ['calc', 'result', 'write', 'history', 'words', 'practice'];
+const SHEETS = ['calc', 'result', 'write', 'history', 'words', 'practice', 'ai'];
 // PC: the picture / screen area is on the left and the calculator or solution stays open on the right
 const deskQuery = matchMedia('(min-width: 900px) and (pointer: fine)');
 let isDesk = deskQuery.matches;
@@ -46,6 +47,7 @@ function openSheet(id) {
 }
 document.querySelectorAll('[data-close]').forEach((b) => b.addEventListener('click', () => {
   const sheet = b.closest('.sheet').id;
+  if (sheet === 'ai' && aiFrom) { openSheet(aiFrom); return; }
   openSheet(sheet === 'result' && ['calc', 'words', 'practice'].includes(cameFrom) ? cameFrom : null);
 }));
 
@@ -59,6 +61,7 @@ document.querySelectorAll('[data-menu]').forEach((b) => b.addEventListener('clic
   $('menu').hidden = true;
   if (m === 'help') $('help').hidden = false;
   else if (m === 'practice') openPractice();
+  else if (m === 'ai') openAI();
   else if (m !== 'close') openSheet(m);
 }));
 $('helpBtn').addEventListener('click', () => { $('help').hidden = false; });
@@ -320,6 +323,7 @@ $('shutter').addEventListener('click', async () => {
 });
 async function readImage(src, crop, source) {
   busy(true, 'Reading the problem…');
+  try { lastImage = imageForAI(src, crop); } catch { lastImage = null; }
   try {
     await nextFrame();
     const model = await getModel();
@@ -386,10 +390,11 @@ async function ocrText(src, crop) {
 }
 // read a word problem from a picture, then solve it (the text stays editable in the word-problem sheet)
 async function readWords(src, crop) {
+  try { lastImage = imageForAI(src, crop); } catch { lastImage = null; }
   let text;
   try { text = await ocrText(src, crop); } catch (e) { console.error(e); toast('Could not read that: ' + e.message); return; }
   if (!text || text.split(/\s+/).length < 3) { toast('I could not find any text. Try again closer, with more light.'); return; }
-  $('wordsText').value = text;
+  $('wordsText').value = text; $('wordsText').dataset.fromPhoto = '1';
   solveWords(text);
 }
 $('wordsFile').addEventListener('change', async (e) => {
@@ -525,13 +530,14 @@ function solveText(text, { source = 'calc', latex = null, alts = [] } = {}) {
   let r;
   try { r = solveProblem(text, { degrees }); }
   catch (e) {
-    if (source === 'calc') { showCalcError(e.message); return; }
+    if (source === 'calc') { showCalcError(e.message, null); return; }
     // reading went wrong: open the calculator with what was read so it can be fixed
     openCalcWith(text);
+    calcImage = lastImage;
     showCalcError(lang === 'lt' ? `Perskaičiau „${text}“, bet nepavyko išspręsti: ${trError(e.message)} Pataisykite ir paspauskite ⏎.` : `I read “${text}” but couldn't solve it: ${e.message} Fix it and press ⏎.`);
     return;
   }
-  current = { text, latex: latex ?? safeTex(text), source, alts, r };
+  current = { text, latex: latex ?? safeTex(text), source, alts, r, image: source === 'photo' || source === 'write' ? lastImage : null };
   cameFrom = source === 'calc' ? 'calc' : null;
   renderResult(r, source);
   addHistory(text, current.latex, r.answerText);
@@ -626,10 +632,10 @@ function solveWords(text) {
   let r;
   try { r = solveProblem(text, { degrees }); } catch (e) {
     openSheet('words'); $('wordsText').value = text;
-    $('wordsError').textContent = trError(e.message); $('wordsError').hidden = false; return;
+    $('wordsError').textContent = trError(e.message); $('wordsError').hidden = false; $('wordsAI').hidden = false; return;
   }
-  $('wordsError').hidden = true;
-  current = { text, latex: null, source: 'words', alts: [], r };
+  $('wordsError').hidden = true; $('wordsAI').hidden = true;
+  current = { text, latex: null, source: 'words', alts: [], r, image: lastImage && $('wordsText').dataset.fromPhoto === '1' ? lastImage : null };
   cameFrom = 'words';
   renderResult(r, 'words');
   addHistory(text, null, r.answerText);
@@ -702,13 +708,122 @@ $('similarBtn').addEventListener('click', () => {
   openPractice(s);
 });
 
+// ---- AI tutor (Claude): explains, answers questions, solves what the engine can't; the student's own key
+let aiMsgs = [], aiCtx = null, aiImage = null, aiAbort = null, aiFrom = null, lastImage = null, calcImage = null;
+const aiKey = () => store.get('aiKey', '');
+const AI_CHIPS = {
+  solved: ['Explain it more simply', 'Why is this step needed?', 'Is there another way?', 'Where do students usually go wrong?'],
+  unsolved: ['Solve it step by step', 'Give me a hint only'],
+  free: ['Explain derivatives simply', 'How do I solve log equations?', 'Give me a VBE-style problem'],
+};
+function aiChips(kind) {
+  const box = $('aiChips');
+  box.innerHTML = '';
+  for (const c of AI_CHIPS[kind] || []) { const b = document.createElement('button'); b.textContent = ui(c); b.addEventListener('click', () => aiSend(ui(c))); box.appendChild(b); }
+  if (kind === 'free' && aiKey()) { const k = document.createElement('button'); k.textContent = '🔑 ' + ui('API key'); k.addEventListener('click', () => aiSetup(true)); box.appendChild(k); }
+}
+function aiBubble(cls, html) {
+  const d = document.createElement('div');
+  d.className = 'ai-msg ' + cls;
+  d.innerHTML = html;
+  $('aiLog').appendChild(d);
+  d.scrollIntoView({ block: 'end' });
+  return d;
+}
+function aiSetup(show) { $('aiSetup').hidden = !show; $('aiKey').value = ''; $('aiKeyError').hidden = true; $('aiKeyRemove').hidden = !aiKey(); $('aiKeySave').style.gridColumn = aiKey() ? '' : '1 / -1'; }
+function aiReset() { if (aiAbort) aiAbort.abort(); aiMsgs = []; aiCtx = null; aiImage = null; $('aiThumb').hidden = true; $('aiLog').innerHTML = ''; }
+// ctx: { problem, answer, steps, image, solved, autoAsk }
+function openAI(ctx) {
+  aiFrom = SHEETS.find((s) => !$(s).hidden && s !== 'ai') || null;
+  if (ctx || !aiMsgs.length) {
+    aiReset();
+    aiCtx = ctx || null;
+    if (ctx) aiBubble('ctx', (ctx.image ? `<img src="${ctx.image.url}" alt="" style="max-width:120px;border-radius:8px;display:block;margin-bottom:6px">` : '') + `<b>${escapeHtml(ui(ctx.solved ? 'About this problem' : 'Problem'))}:</b> ${renderAI(ctx.problem || '', texHTML, escapeHtml).replace(/^<p>|<\/p>$/g, '')}`);
+    aiChips(ctx ? (ctx.solved ? 'solved' : 'unsolved') : 'free');
+  }
+  openSheet('ai');
+  aiSetup(!aiKey());
+  $('aiText').placeholder = ui(aiCtx ? 'Ask about this problem…' : 'Ask anything about math…');
+  if (ctx && ctx.autoAsk && aiKey()) aiSend(ui(ctx.autoAsk));
+  else if (!matchMedia('(pointer: coarse)').matches) setTimeout(() => $('aiText').focus(), 60);
+}
+async function aiSend(question) {
+  question = String(question || '').trim();
+  if (!question && !aiImage) return;
+  if (!question) question = ui('Solve the problem in the picture step by step.');
+  if (!aiKey()) { aiSetup(true); aiPending = question; return; }
+  if (aiAbort) return;
+  const msg = aiCtx ? contextMessage({ ...aiCtx, question, lang }) : userMessage(question, aiImage);
+  const shownImg = aiCtx ? null : aiImage, sentCtx = aiCtx, sentImg = aiImage;
+  aiCtx = null; aiImage = null; $('aiThumb').hidden = true; $('aiChips').innerHTML = ''; $('aiText').value = '';
+  aiBubble('me', (shownImg ? `<img src="${shownImg.url}" alt="">` : '') + escapeHtml(question));
+  aiMsgs.push(msg);
+  const bot = aiBubble('bot', '<span class="ai-typing"></span>');
+  aiAbort = new AbortController();
+  $('aiSend').classList.add('stop');
+  let last = 0;
+  try {
+    const { reply, text, truncated } = await ask({
+      key: aiKey(), lang, messages: aiMsgs, signal: aiAbort.signal, effort: aiMsgs.length > 1 ? 'medium' : 'high',
+      onText: (snap) => { const now = Date.now(); if (now - last > 120) { last = now; bot.innerHTML = renderAI(snap, texHTML, escapeHtml); bot.scrollIntoView({ block: 'end' }); } },
+    });
+    aiMsgs.push(reply);
+    bot.innerHTML = renderAI(text, texHTML, escapeHtml) + (truncated ? `<p><i>${escapeHtml(ui('(the answer was cut off)'))}</i></p>` : '');
+  } catch (e) {
+    console.error(e);
+    aiMsgs.pop(); // the question got no answer: leave it out of the conversation, and keep the problem for the next try
+    aiCtx = sentCtx; aiImage = sentImg; if (sentImg) { $('aiThumb').src = sentImg.url; $('aiThumb').hidden = false; }
+    bot.classList.add('err'); bot.textContent = errorText(e, lang);
+    if (e && e.status === 401) aiSetup(true);
+  } finally {
+    aiAbort = null; $('aiSend').classList.remove('stop');
+  }
+}
+let aiPending = null;
+$('aiSend').addEventListener('click', () => { if (aiAbort) { aiAbort.abort(); return; } aiSend($('aiText').value); });
+$('aiText').addEventListener('keydown', (e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); aiSend($('aiText').value); } });
+$('aiText').addEventListener('input', () => { const t = $('aiText'); t.style.height = 'auto'; t.style.height = Math.min(140, t.scrollHeight) + 'px'; });
+$('aiNew').addEventListener('click', () => { aiReset(); aiChips('free'); $('aiText').placeholder = ui('Ask anything about math…'); });
+$('aiFile').addEventListener('change', async (e) => {
+  const f = e.target.files[0];
+  e.target.value = '';
+  if (!f) return;
+  const img = new Image();
+  img.src = URL.createObjectURL(f);
+  try { await img.decode(); } catch { toast('That picture could not be opened'); return; }
+  aiImage = imageForAI(img);
+  $('aiThumb').src = aiImage.url; $('aiThumb').hidden = false;
+});
+$('aiKeySave').addEventListener('click', () => {
+  const k = $('aiKey').value.trim();
+  if (!/^sk-ant-[\w-]{20,}$/.test(k)) { $('aiKeyError').textContent = ui('That does not look like an Anthropic API key (it starts with sk-ant-).'); $('aiKeyError').hidden = false; return; }
+  store.set('aiKey', k); aiSetup(false); toast('AI tutor is on');
+  if (aiPending) { const q = aiPending; aiPending = null; aiSend(q); }
+});
+$('aiKeyRemove').addEventListener('click', () => { store.set('aiKey', ''); aiSetup(true); toast('Key removed'); });
+$('openAI').addEventListener('click', () => openAI());
+$('aiBtn').addEventListener('click', () => {
+  if (!current || !current.r) return;
+  const r = current.r;
+  openAI({ problem: r.kind === 'word' || current.source === 'words' ? current.text : `$${current.latex || r.inputTex}$`, answer: r.answerText, steps: r.steps.map((st) => st.title.replace(/\$/g, '') + (st.math ? `: ${st.math}` : '')), image: current.image, solved: true });
+});
+$('calcAI').addEventListener('click', () => {
+  const problem = mf ? (() => { try { return mfText(); } catch { return mf.getValue('latex'); } })() : '';
+  openAI({ problem, image: calcImage, solved: false, autoAsk: 'Solve it step by step' });
+});
+$('wordsAI').addEventListener('click', () => {
+  const t = $('wordsText');
+  openAI({ problem: t.value.trim(), image: t.dataset.fromPhoto === '1' ? lastImage : null, solved: false, autoAsk: 'Solve it step by step' });
+});
+$('wordsText').addEventListener('input', () => { $('wordsText').dataset.fromPhoto = ''; });
+
 function openCalcWith(text, latex) {
   openSheet('calc');
   const set = () => { if (!mf) return setTimeout(set, 60); mf.setValue(latex || safeTex(text)); livePreview(); };
   set();
 }
-function showCalcError(m) { $('calcError').textContent = trError(ui(m)); $('calcError').hidden = false; }
-function hideCalcError() { $('calcError').hidden = true; }
+function showCalcError(m, img) { $('calcError').textContent = trError(ui(m)); $('calcError').hidden = false; if (img !== undefined) calcImage = img; $('calcAI').hidden = !/[\d\w]/.test(mf ? mf.getValue('latex') : ''); }
+function hideCalcError() { $('calcError').hidden = true; $('calcAI').hidden = true; }
 let previewTimer = null;
 function livePreview() {
   clearTimeout(previewTimer);

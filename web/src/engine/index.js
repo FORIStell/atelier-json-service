@@ -44,6 +44,8 @@ export function solveProblem(input, opts = {}) {
   const res = (kind, title, inputTex, steps, answerTex, answerText, extra = {}) => ({ kind, title, inputTex, steps, answerTex, answerText, ...extra });
   const looksLikeWords = (original.match(/[A-Za-z]{3,}/g) || []).length >= 5;
   if (looksLikeWords && !isLithuanian(original)) { const w = tryWords(); if (w) return w; }
+  // a long story where all we found is one bare number ("... kampas A lygus 60 ..."): not solved, don't pretend
+  if (original.trim().split(/\s+/).length >= 8 && /^[-−\d.,\s]+$/.test(s) && (isLithuanian(original) || looksLikeWords)) throw new MathError('I can’t solve this word problem yet. Write it as an equation or an expression (for example 210/3) and I will solve it step by step.');
   try {
     return dispatch(s, lower, opts, res);
   } catch (e) {

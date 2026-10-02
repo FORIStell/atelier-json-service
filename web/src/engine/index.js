@@ -11,13 +11,15 @@ import { toQArray, deg, toNode, rationalRoots, synthDiv } from './poly.js';
 import { matrixProblem } from './matrix.js';
 import { geometryProblem } from './geometry.js';
 import { advancedProblem, expTrigIntegral } from './advanced.js';
+import { fromLithuanian } from './lithuanian.js';
 
 const S = (x) => simplify(x);
 
 export function solveProblem(input, opts = {}) {
   const original = String(input).trim();
   if (!original) throw new MathError('Please enter a math problem');
-  let s = normalizeInput(original).replace(/\s+/g, ' ').trim();
+  const lt = fromLithuanian(original); // Lithuanian exam wording -> a command
+  let s = normalizeInput(lt || original).replace(/\s+/g, ' ').trim();
   const lower = s.toLowerCase();
   const res = (kind, title, inputTex, steps, answerTex, answerText, extra = {}) => ({ kind, title, inputTex, steps, answerTex, answerText, ...extra });
   try {

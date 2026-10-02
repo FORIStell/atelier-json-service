@@ -3,7 +3,7 @@
 // and ∫ e^(ax) sin(bx) dx. Each handler returns a result, or null when the text is not that kind of problem.
 import { Q, MathError, isQ, formatNumber } from './rational.js';
 import { parse } from './parser.js';
-import { fromRaw, simplify, expand, has, freeVars, evalNum, subst, sub, add, mul, div, pow, num, sym, fn, polyCoeffs, numerDenom, ZERO, ONE, E } from './cas.js';
+import { fromRaw, simplify, expand, has, freeVars, evalNum, subst, sub, add, mul, div, pow, num, sym, fn, polyCoeffs, numerDenom, coeffSplit, ZERO, ONE, E } from './cas.js';
 import { tex, text } from './print.js';
 import { derivative, integrate } from './calculus.js';
 import { solveEquation, solveInequality, intervalsTex, intervalsText, chooseVar } from './solve.js';
@@ -33,6 +33,11 @@ export function advancedProblem(s, opts, res) {
   let m;
   const t = s.trim();
   if ((m = t.match(/^(?:find\s+)?(?:the\s+)?(?:derivative|slope)\s+(?:of\s+)?(.+?)\s+(?:at|when|where)\s+([a-z])\s*=\s*(.+)$/i))) return derivativeAt(m[1], m[2], m[3], res);
+  if ((m = t.match(/^(?:find\s+)?(?:the\s+)?tangent(?:\s+line)?\s+(?:to|of)\s+(.+?)\s+where it equals\s+(.+)$/i))) {
+    const { f, v } = fnOf(m[1]);
+    const xs = realSolutions(S(sub(f, P(m[2]))), v, []).list || [];
+    if (xs.length === 1) return tangentLine(m[1], v, text(xs[0]), res);
+  }
   if ((m = t.match(/^(?:find\s+)?(?:the\s+)?(?:equation\s+of\s+)?(?:the\s+)?tangent(?:\s+line)?\s+(?:to|of|for)\s+(?:the\s+(?:curve|graph)\s+)?(.+?)\s+(?:at|when|where)\s+([a-z])\s*=\s*(.+)$/i))) return tangentLine(m[1], m[2], m[3], res);
   if ((m = t.match(/^(?:find\s+)?(?:the\s+)?(?:local\s+)?(?:extrema|extreme values|extremum|critical points|stationary points|turning points|max(?:ima|imum)?\s+and\s+min(?:ima|imum)?|minimum and maximum|min and max)\s+(?:of\s+)?(.+)$/i)) ||
       (m = t.match(/^(.+?)\s*,?\s+(?:extrema|critical points|turning points|max and min|stationary points)$/i))) return extrema(m[1], res);
@@ -42,10 +47,225 @@ export function advancedProblem(s, opts, res) {
   if ((m = t.match(/^(?:partial\s+fractions?(?:\s+decomposition)?|decompose)\s+(?:of\s+)?(.+)$/i))) return partialFractions(m[1], res);
   if ((m = t.match(/^(?:find\s+)?(?:the\s+)?(eigenvalues?(?:\s+and\s+eigenvectors?)?|eigenvectors?)\s+(?:of\s+)?(\[.+\])$/i))) return eigen(m[2], res);
   if ((m = t.match(/^(?:solve\s+)?(y'|y′|dy\/dx)\s*=\s*(.+)$/i))) return ode(m[2], res);
+  if ((m = t.match(/^(?:solve\s+)?(.*y'.*?)\s*=\s*(.+)$/i)) && !/^y'\s*$/.test(m[1])) return odeRearranged(m[1], m[2], res);
+  if ((m = t.match(/^\{([^}]*)\}\s*(∩|∪|\\|∖|-)\s*\{([^}]*)\}$/))) return setOp(m[1], m[2], m[3], res);
+  if ((m = t.match(/^(?:rationali[sz]e|rationali[sz]e the denominator of)\s+(.+)$/i))) return rationalize(m[1], res);
+  if ((m = t.match(/^(?:antiderivative|primitive)\s+of\s+(.+?)\s+(?:through|passing through|with|via)\s*\(\s*(.+?)\s*[,;]\s*(.+?)\s*\)$/i))) return antiderivativeThrough(m[1], m[2], m[3], res);
+  if ((m = t.match(/^(?:find\s+)?(?:the\s+)?(maximum|minimum|max|min|largest|smallest|greatest|least)(?:\s+value)?\s+of\s+(.+?)(?:\s+(?:on|in|for)\s+([([])\s*(.+?)\s*[,;]\s*(.+?)\s*([)\]]))?$/i))) return maxMinOn(m[1], m[2], m[3], m[4], m[5], m[6], res);
+  if ((m = t.match(/^(?:find\s+)?(?:the\s+)?range\s+of\s+(.+)$/i))) return rangeOf(m[1], res);
+  if ((m = t.match(/^(?:evaluate|find|calculate|compute)?\s*(.+?)\s+(?:given|if|where)\s+(.+=.+)$/i)) && !/=/.test(m[1])) return givenProblem(m[1], m[2].split(/\s*;\s*|\s+and\s+/), res);
+  if ((m = t.match(/^(?:solve\s+)?slope of (.+?)\s*=\s*(.+)$/i))) return slopeIs(m[1], m[2], res);
+  if ((m = t.match(/^volume of revolution of (.+?) up to ([a-z])\s*=\s*(.+)$/i))) return revolution(m[1], m[3], res);
+  if ((m = t.match(/^(.+=.+?)\s+(?:on|in|for)\s+([([])\s*(.+?)\s*[,;]\s*(.+?)\s*([)\]])$/i)) || (m = t.match(/^(.+=.+?)\s*,\s*()(-?[\d.π/°]+)\s*(<|<=|≤)\s*[a-z]\s*(?:<|<=|≤)\s*(-?[\d.π/°]+)()$/i))) {
+    if (m[2] === '' ) { const lo = m[3], hi = m[5]; return solveOnInterval(m[1], m[4] === '<' ? '(' : '[', lo, hi, ')', opts, res); }
+    return solveOnInterval(m[1], m[2], m[3], m[4], m[5], opts, res);
+  }
   if ((m = t.match(/^(?:modulus|abs|absolute value)?\s*(?:of\s+)?\|(.+)\|$/i)) && /i/.test(m[1])) return modulus(m[1], res);
   const seq = sequenceProblem(t, res);
   if (seq) return seq;
   return null;
+}
+
+// {2; 4; 6; 8} \ {2; 4; 5; 6; 7} = {8}
+function setOp(a, op, b, res) {
+  const items = (x) => x.split(/[;,]/).map((y) => y.trim()).filter(Boolean);
+  const A = items(a), B = items(b);
+  const kA = (y) => text(S(P(y)));
+  const inB = new Set(B.map(kA)), inA = new Set(A.map(kA));
+  let out, title, sym0;
+  if (op === '∩') { out = A.filter((y) => inB.has(kA(y))); title = 'Intersection: elements in both sets'; sym0 = '\\cap'; }
+  else if (op === '∪') { out = [...A, ...B.filter((y) => !inA.has(kA(y)))]; title = 'Union: elements in either set'; sym0 = '\\cup'; }
+  else { out = A.filter((y) => !inB.has(kA(y))); title = 'Difference: elements of the first set that are not in the second'; sym0 = '\\setminus'; }
+  const st = (xs) => `\\{${xs.map((y) => tex(S(P(y)))).join(';\\ ')}\\}`;
+  const head = `${st(A)} ${sym0} ${st(B)}`;
+  return res('sets', 'Sets', head, [{ title, math: `${head} = ${out.length ? st(out) : '\\varnothing'}` }], out.length ? st(out) : '\\varnothing', out.length ? `{${out.join('; ')}}` : '∅');
+}
+// 2/(4 - √a) = 2(4 + √a)/(16 - a)
+function rationalize(src, res) {
+  const f = S(P(src));
+  const [N, D] = numerDenom(f);
+  const terms = D.t === 'add' ? D.a : [D];
+  const isRoot = (q) => { const [, r] = coeffSplit(q); return r && r.t === 'pow' && r.e.t === 'num' && isQ(r.e.v) && r.e.v.d === 2n; };
+  const steps = [{ title: 'Start with the fraction', math: tex(f) }];
+  let out;
+  if (terms.length === 2 && terms.some(isRoot)) {
+    const conj = S(add(terms.map((q) => (isRoot(q) ? mul(num(-1), q) : q))));
+    const top = S(expand(mul(N, conj))), bot = S(expand(mul(D, conj)));
+    steps.push({ title: 'Multiply top and bottom by the conjugate (a + b)(a - b) = a² - b²', math: `\\frac{${tex(N)} \\cdot \\left(${tex(conj)}\\right)}{\\left(${tex(D)}\\right)\\left(${tex(conj)}\\right)} = \\frac{${tex(top)}}{${tex(bot)}}` });
+    out = { t: 'mul', a: [top, { t: 'pow', b: bot, e: num(-1) }] };
+  } else if (terms.length === 1 && isRoot(D)) {
+    const [, r] = coeffSplit(D);
+    const top = S(mul(N, r)), bot = S(mul(D, r));
+    steps.push({ title: 'Multiply top and bottom by the root', math: `\\frac{${tex(N)} \\cdot ${tex(r)}}{${tex(D)} \\cdot ${tex(r)}} = \\frac{${tex(top)}}{${tex(bot)}}` });
+    out = { t: 'mul', a: [top, { t: 'pow', b: bot, e: num(-1) }] };
+  } else throw new MathError('There is no root in the denominator to remove');
+  return res('rationalize', 'Rationalize the denominator', tex(f), steps, tex(out), text(out));
+}
+// F with F' = f and F(x0) = y0
+function antiderivativeThrough(fsrc, x0s, y0s, res) {
+  const { f, v } = fnOf(fsrc);
+  const steps = [{ title: 'Find all antiderivatives', math: `F(${v}) = \\int ${tex(f)}\\,d${v}` }];
+  const st = [];
+  const F = integrate(f, v, st);
+  if (!F) throw new MathError('I could not integrate this function');
+  st.forEach((q) => steps.push(q));
+  const X0 = S(P(x0s)), Y0 = S(P(y0s));
+  const C = S(sub(Y0, subst(S(F), v, X0)));
+  steps.push({ title: `Use the point $(${tex(X0)};\\ ${tex(Y0)})$ to find $C$`, math: `${tex(S(subst(S(F), v, X0)))} + C = ${tex(Y0)} \\;\\Rightarrow\\; C = ${tex(C)}` });
+  const ans = S(add(S(F), C));
+  return res('integral', 'Antiderivative through a point', `F'(${v}) = ${tex(f)},\\ F(${tex(X0)}) = ${tex(Y0)}`, steps, `F(${v}) = ${tex(ans)}`, `F(${v}) = ${text(ans)}`);
+}
+const bound = (b) => { const deg = /°/.test(b); const v = evalNum(S(P(b.replace(/°/g, '')))); return { v: deg ? (v * Math.PI) / 180 : v, deg }; };
+// critical points of f inside (lo, hi): real solutions of f' = 0, including families like π/4 + πk
+function criticalIn(d, v, lo, hi) {
+  const r = solveEquation(d, ZERO, v, []);
+  const out = [];
+  const push = (node) => { let xv; try { xv = evalNum(node); } catch { return; } if (xv > lo + 1e-12 && xv < hi - 1e-12 && !out.some((o) => Math.abs(evalNum(o) - xv) < 1e-9)) out.push(node); };
+  if (r.general) for (const g of r.general) for (let kk = -40; kk <= 40; kk++) push(S(subst(g, 'k', num(kk))));
+  else (r.solutions || []).forEach(push);
+  return out;
+}
+function maxMinOn(kind, fsrc, lb, los, his, rb, res) {
+  const { f, v, name } = fnOf(fsrc);
+  const wantMax = /max|largest|greatest/i.test(kind);
+  const lo = los ? bound(los).v : -Infinity, hi = his ? bound(his).v : Infinity;
+  const steps = [{ title: 'Start with the function', math: `${name} = ${tex(f)}${los ? `,\\quad ${v} \\in ${lb}${tex(S(P(los.replace(/°/g, ''))))};\\ ${tex(S(P(his.replace(/°/g, ''))))}${rb}` : ''}` }];
+  const d = derivative(f, v, []);
+  steps.push({ title: 'Find the derivative', math: `${tex(d)}` });
+  const crit = criticalIn(d, v, lo, hi);
+  steps.push({ title: 'Critical points inside the interval: solve $f\'(x) = 0$', math: crit.length ? crit.map((c) => `${v} = ${tex(c)}`).join(',\\quad ') : '\\text{none}' });
+  const cands = crit.map((c) => ({ x: c, y: S(subst(f, v, c)), why: 'critical point' }));
+  if (lb === '[' && Number.isFinite(lo)) cands.push({ x: S(P(los)), y: S(subst(f, v, S(P(los)))), why: 'end of the interval' });
+  if (rb === ']' && Number.isFinite(hi)) cands.push({ x: S(P(his)), y: S(subst(f, v, S(P(his)))), why: 'end of the interval' });
+  if (!cands.length) throw new MathError(`There is no ${wantMax ? 'largest' : 'smallest'} value here`);
+  cands.forEach((c) => steps.push({ title: `Value at $${v} = ${tex(c.x)}$ (${c.why})`, math: `${tex(c.y)}${approx(c.y)}` }));
+  const best = cands.reduce((a, b) => ((wantMax ? evalNum(b.y) > evalNum(a.y) : evalNum(b.y) < evalNum(a.y)) ? b : a));
+  // an open interval: make sure the value is not beaten near the ends
+  const word = wantMax ? 'maximum' : 'minimum';
+  steps.push({ title: `The ${wantMax ? 'largest' : 'smallest'} value`, math: `${tex(best.y)} \\text{ at } ${v} = ${tex(best.x)}` });
+  return res('extrema', wantMax ? 'Largest value' : 'Smallest value', `${name} = ${tex(f)}`, steps, `\\text{${word}: } ${tex(best.y)} \\text{ at } ${v} = ${tex(best.x)}`, `${word} at (${text(best.x)}, ${text(best.y)})`, { graph: { expr: text(f), v } });
+}
+// range of a function: smallest and largest values (periodic functions over one turn, others over all x)
+function rangeOf(src, res) {
+  const { f, v, name } = fnOf(src);
+  const d = derivative(f, v, []);
+  const periodic = !findPlainVar(f, v);
+  const crit = periodic ? criticalIn(d, v, -1e-9, 2 * Math.PI) : criticalIn(d, v, -Infinity, Infinity);
+  const vals = crit.map((c) => S(subst(f, v, c)));
+  const steps = [{ title: 'Start with the function', math: `${name} = ${tex(f)}` }, { title: 'Critical points (where the derivative is 0)', math: crit.map((c) => `${v} = ${tex(c)}`).join(',\\quad ') || '\\text{none}' }];
+  let lo = vals.length ? vals.reduce((a, b) => (evalNum(b) < evalNum(a) ? b : a)) : null, hi = vals.length ? vals.reduce((a, b) => (evalNum(b) > evalNum(a) ? b : a)) : null;
+  let loInf = false, hiInf = false;
+  if (!periodic) {
+    for (const X of [1e6, -1e6]) { let y; try { y = evalNum(f, { [v]: X }); } catch { continue; } if (y > 1e5) hiInf = true; if (y < -1e5) loInf = true; }
+  }
+  if (!lo && !loInf) loInf = true;
+  if (!hi && !hiInf) hiInf = true;
+  const L = loInf ? '(-\\infty' : `[${tex(lo)}`, H = hiInf ? '+\\infty)' : `${tex(hi)}]`;
+  steps.push({ title: periodic ? 'Values at the critical points in one period give the smallest and largest value' : 'Compare the values at the critical points and far away', math: `E(f) = ${L};\\ ${H}` });
+  return res('range', 'Range', `${name} = ${tex(f)}`, steps, `${L};\\ ${H}`, `[${loInf ? '-∞' : text(lo)}, ${hiInf ? '∞' : text(hi)}]`);
+}
+function findPlainVar(f, v) {
+  let plain = false;
+  (function walk(x, inTrig) {
+    if (x.t === 'fn' && ['sin', 'cos', 'tan', 'cot'].includes(x.n)) return;
+    if (x.t === 'sym' && x.n === v) plain = true;
+    for (const k of ['a', 'b', 'e']) if (x[k]) (Array.isArray(x[k]) ? x[k] : [x[k]]).forEach((c) => walk(c, inTrig));
+  })(f, false);
+  return plain;
+}
+// T given G1; G2: substitute what the givens say, then simplify
+function givenProblem(tsrc, gsrcs, res) {
+  let T = S(P(tsrc));
+  const steps = [{ title: 'What we need', math: tex(T) }];
+  const env = {};
+  for (const g of gsrcs) {
+    const [ls, rs] = g.split('=');
+    if (rs === undefined) continue;
+    const L = S(P(ls)), R = S(P(rs));
+    steps.push({ title: 'Given', math: `${tex(L)} = ${tex(R)}` });
+    if (L.t === 'sym' && !has(R, L.n)) { T = S(subst(T, L.n, R)); steps.push({ title: `Put $${L.n} = ${tex(R)}$ into it`, math: tex(T) }); continue; }
+    const vars = [...freeVars(S(sub(L, R)))].filter((q) => q !== 'k');
+    if (vars.length === 1) {
+      const u = vars[0];
+      const r = solveEquation(L, R, u, []);
+      const sols = r.solutions && r.solutions.length ? r.solutions : (r.general || []).map((q) => S(subst(q, 'k', ZERO)));
+      if (!sols.length) throw new MathError('The given equation has no solution');
+      env[u] = sols;
+      steps.push({ title: `Solve for $${u}$`, math: `${u} = ${tex(sols[0])}` });
+    }
+  }
+  // substitute the solved unknowns; all choices must give the same value
+  const keys = Object.keys(env);
+  let outs = [T];
+  for (const k of keys) outs = outs.flatMap((o) => env[k].map((sv) => S(subst(o, k, sv))));
+  let ans = outs[0];
+  try {
+    const vals = outs.map((o) => evalNum(o));
+    if (vals.every((q) => Math.abs(q - vals[0]) < 1e-9 * Math.max(1, Math.abs(vals[0])))) {
+      const simple = outs.find((o) => o.t === 'num') || outs.reduce((a, b) => (tex(b).length < tex(a).length ? b : a));
+      ans = simple;
+      if (ans.t !== 'num') { const r = Math.round(vals[0] * 1e9) / 1e9; if (Math.abs(r - vals[0]) < 1e-9 && tex(ans).length > 12) ans = num(Q.fromDecimalString(String(r))); }
+    }
+  } catch { /* symbolic answer */ }
+  steps.push({ title: 'Substitute and simplify', math: tex(ans) });
+  return res('given', 'Calculate', tex(T), steps, tex(ans), text(ans));
+}
+// x where the slope of f equals a value: f'(x) = c
+function slopeIs(fsrc, csrc, res) {
+  const { f, v } = fnOf(fsrc);
+  const d = derivative(f, v, []);
+  const c = S(P(csrc));
+  const steps = [{ title: 'The slope of the tangent is the derivative', math: `f'(${v}) = ${tex(d)}` }, { title: 'Set it equal to the slope', math: `${tex(d)} = ${tex(c)}` }];
+  const st = [];
+  const r = solveEquation(d, c, v, st);
+  st.slice(1).forEach((q) => steps.push(q));
+  const sols = r.solutions || [];
+  return res('equation', `Solve for ${v}`, `f'(${v}) = ${tex(c)}`, steps, sols.map((q) => `${v} = ${tex(q)}`).join(',\\quad ') || '\\text{no solution}', sols.map((q) => `${v} = ${text(q)}`).join(', ') || 'No solution');
+}
+// solid of revolution about the x-axis from where the curve meets the axis up to x = b
+function revolution(ysrc, bsrc, res) {
+  const f = S(P(ysrc)), v = chooseVar([f]) || 'x';
+  const zeros = realSolutions(f, v, []).list || [];
+  const b = S(P(bsrc));
+  const a0 = zeros.filter((z) => evalNum(z) < evalNum(b)).sort((p, q) => evalNum(q) - evalNum(p))[0];
+  if (!a0) throw new MathError('I could not find where the curve meets the x-axis');
+  const steps = [{ title: 'Volume of revolution $V = \\pi \\int_a^b y^2\\,dx$; the curve meets the x-axis at', math: `${v} = ${tex(a0)}` }];
+  const F = integrate(S(expand(pow(f, num(2)))), v, []);
+  const V = S(mul(PI_, sub(subst(F, v, b), subst(F, v, a0))));
+  steps.push({ title: 'Integrate', math: `V = \\pi \\int_{${tex(a0)}}^{${tex(b)}} \\left(${tex(f)}\\right)^2 d${v} = ${tex(V)}` });
+  return res('integral', 'Volume of revolution', `V`, steps, tex(V), text(V));
+}
+const PI_ = sym('pi');
+
+// tg x - 1 = 0, x ∈ (90°; 270°)
+function solveOnInterval(eqSrc, lb, los, his, rb, opts, res) {
+  const [Ls, Rs] = eqSrc.split('=');
+  const deg = /°/.test(los + his);
+  const L = S(P(Ls)), Rn = S(P(Rs));
+  const v = chooseVar([L, Rn]) || 'x';
+  const steps = [];
+  const r = solveEquation(L, Rn, v, steps);
+  const lo = bound(los).v, hi = bound(his).v;
+  const inside = (xv) => (lb === '[' ? xv >= lo - 1e-12 : xv > lo + 1e-12) && (rb === ']' ? xv <= hi + 1e-12 : xv < hi - 1e-12);
+  const out = [];
+  const push = (node) => { let xv; try { xv = evalNum(node); } catch { return; } if (inside(xv) && !out.some((o) => Math.abs(o.v - xv) < 1e-9)) out.push({ node, v: xv }); };
+  if (r.general) for (const g of r.general) for (let kk = -60; kk <= 60; kk++) push(S(subst(g, 'k', num(kk))));
+  (r.solutions || []).forEach(push);
+  out.sort((a, b) => a.v - b.v);
+  const show = (o) => (deg ? `${formatNumber(Math.round((o.v * 180) / Math.PI * 1e9) / 1e9)}°` : tex(o.node));
+  steps.push({ title: `Keep only the solutions in ${lb}${los}; ${his}${rb}`, math: out.length ? out.map((o) => `${v} = ${show(o)}`).join(',\\quad ') : '\\text{none}' });
+  const ansT = out.map((o) => `${v} = ${deg ? formatNumber(Math.round((o.v * 180) / Math.PI * 1e9) / 1e9) : text(o.node)}`).join(', ') || 'No solution';
+  return res('equation', `Solve for ${v}`, `${tex(L)} = ${tex(Rn)},\\ ${v} \\in ${lb}${los}; ${his}${rb}`, steps, out.length ? out.map((o) => `${v} = ${show(o)}`).join(',\\quad ') : '\\text{no solution}', ansT);
+}
+// y' + 2y = 4  ->  y' = 4 - 2y
+function odeRearranged(l, r, res) {
+  const D = sym('D');
+  const L = S(P(l.replace(/y'|y′/g, 'D'))), R0 = S(P(r.replace(/y'|y′/g, 'D')));
+  const co = polyCoeffs(S(sub(L, R0)), 'D');
+  if (!co || co.length !== 2) return null;
+  const rhs = S(div(mul(num(-1), co[0]), co[1]));
+  void D;
+  return ode(text(rhs), res);
 }
 
 // |3 + 4i| = 5

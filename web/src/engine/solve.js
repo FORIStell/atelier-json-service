@@ -504,8 +504,27 @@ function solveSpecial(lhs, rhs, v, steps, depth) {
   // ---- substitution for trig/other kernels ----
   const subst1 = trySubstitution(lhs, rhs, v, steps, depth, uniq);
   if (subst1) return subst1;
+  // ---- one inverse trig function: 4 arccos(x + 2) = 3π -> arccos(x + 2) = 3π/4 -> x + 2 = cos(3π/4)
+  const invs = findAll(f, (n) => n.t === 'fn' && ['asin', 'acos', 'atan'].includes(n.n) && has(n, v));
+  if (invs.length && invs.every((t) => equal(t, invs[0]))) {
+    const T = invs[0];
+    const [L, R] = isolate(lhs, rhs, v, (t) => containsNode(t, T));
+    let l = L, r = R;
+    const [c, rest] = coeffSplit(l);
+    if (rest && equal(rest, T)) { l = T; r = S(div(r, num(c))); }
+    if (equal(l, T) && !has(r, v)) {
+      steps.push({ title: `Isolate $\\${T.n === 'asin' ? 'arcsin' : T.n === 'acos' ? 'arccos' : 'arctan'}$`, math: eqTex(l, r) });
+      const rv = evalNum(r);
+      const ok = T.n === 'acos' ? rv >= -1e-12 && rv <= Math.PI + 1e-12 : T.n === 'asin' ? Math.abs(rv) <= Math.PI / 2 + 1e-12 : Math.abs(rv) < Math.PI / 2;
+      if (!ok) { steps.push({ title: `The ${T.n === 'acos' ? 'arccos' : T.n === 'asin' ? 'arcsin' : 'arctan'} function never takes this value, so there is no solution` }); return { solutions: [] }; }
+      const back = { asin: 'sin', acos: 'cos', atan: 'tan' }[T.n];
+      const val = S(fn(back, r));
+      steps.push({ title: `Apply $\\${back}$ to both sides`, math: eqTex(T.a[0], val) });
+      return solveEquation(T.a[0], val, v, steps, depth + 1);
+    }
+  }
   // ---- single trig function ----
-  const trigs = findAll(f, (n) => n.t === 'fn' && ['sin', 'cos', 'tan'].includes(n.n) && has(n, v));
+  const trigs = findAll(f, (n) => n.t === 'fn' && ['sin', 'cos', 'tan', 'cot'].includes(n.n) && has(n, v));
   if (trigs.length) {
     const T = trigs[0];
     if (trigs.every((t) => equal(t, T))) {
@@ -651,6 +670,12 @@ function combineLogs(x) {
 }
 
 function solveTrig(T, r, v, steps, depth) {
+  if (T.n === 'cot') { // cot u = r  ->  tan u = 1/r  (or cos u = 0 when r = 0)
+    const r0 = evalNum(r);
+    if (Math.abs(r0) < 1e-15) return solveTrig(fn('cos', T.a[0]), ZERO, v, steps, depth);
+    steps.push({ title: '$\\cot u = \\frac{1}{\\tan u}$', math: `\\tan\\left(${tex(T.a[0])}\\right) = ${tex(S(div(ONE, r)))}` });
+    return solveTrig(fn('tan', T.a[0]), S(div(ONE, r)), v, steps, depth);
+  }
   const name = T.n, inner = T.a[0];
   const rv = evalNum(r);
   if ((name === 'sin' || name === 'cos') && Math.abs(rv) > 1) { steps.push({ title: `$\\${name}$ is always between $-1$ and $1$, so there is no solution` }); return { solutions: [] }; }

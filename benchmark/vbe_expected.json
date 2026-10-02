@@ -1,0 +1,1053 @@
+{
+ "points": [
+  0.7,
+  1.3,
+  2.1
+ ],
+ "ipoints": [
+  -3.5,
+  -2,
+  -0.5,
+  0.5,
+  1.5,
+  2.5,
+  3.5,
+  6,
+  8,
+  40,
+  60
+ ],
+ "tasks": [
+  {
+   "id": "2026A-01",
+   "topic": "Sets",
+   "lt": "Duotos aibės A = {2; 4; 6; 8} ir B = {2; 4; 5; 6; 7}. Raskite šių aibių skirtumą A \\ B.",
+   "math": "{2; 4; 6; 8} \\ {2; 4; 5; 6; 7}",
+   "kind": "setlit",
+   "expected": [
+    8
+   ],
+   "var": "x",
+   "why": null
+  },
+  {
+   "id": "2026A-02",
+   "topic": "Powers",
+   "lt": "Suprastinkite reiškinį m^sqrt(2) : m^(1 - sqrt(2)).",
+   "math": "simplify m^sqrt(2) / m^(1-sqrt(2))",
+   "kind": "expr",
+   "expected": [
+    0.5209224262779241,
+    1.615612170375702,
+    3.882884735693867
+   ],
+   "var": "m",
+   "why": null
+  },
+  {
+   "id": "2026A-03",
+   "topic": "Probability",
+   "lt": "Atsitiktinio dydžio X skirstinys: P(X=1) = 1/a, P(X=2) = 2/a, P(X=3) = 3/a. Apskaičiuokite a reikšmę.",
+   "math": "1/a + 2/a + 3/a = 1",
+   "kind": "set",
+   "expected": [
+    6.0
+   ],
+   "var": "x",
+   "why": null
+  },
+  {
+   "id": "2026A-04",
+   "topic": "Radicals",
+   "lt": "Panaikinkite iracionalumą trupmenos 2/(4 - sqrt(a)) vardiklyje.",
+   "math": "rationalize 2/(4 - sqrt(a))",
+   "kind": "expr",
+   "expected": [
+    0.6322431407234086,
+    0.6993435952515835,
+    0.7840485862761071
+   ],
+   "var": "a",
+   "why": null
+  },
+  {
+   "id": "2026A-05",
+   "topic": "Combinatorics",
+   "lt": "Parduotuvėje prekės žymimos triženkliais kodais nuo 100 iki 999 imtinai. Apskaičiuokite, kiek yra tokių triženklių kodų, kurių visi trys skaitmenys skirtingi.",
+   "math": "9*9*8",
+   "kind": "num",
+   "expected": [
+    648
+   ],
+   "var": "x",
+   "why": null
+  },
+  {
+   "id": "2026A-06",
+   "topic": "Trigonometry",
+   "lt": "(paveikslas) Vienetinis apskritimas, tangentų tiesė x = 1 ir taškas B(1; -4/3). Nustatykite tg α reikšmę.",
+   "math": null,
+   "kind": "num",
+   "expected": [
+    -1.3333333333333333
+   ],
+   "var": "x",
+   "why": "figure"
+  },
+  {
+   "id": "2026A-07",
+   "topic": "Geometry",
+   "lt": "Ritinio šoninio paviršiaus išklotinė yra kvadratas, kurio plotas lygus 36π^2. Apskaičiuokite šio ritinio pagrindo plotą.",
+   "math": "pi*(sqrt(36pi^2)/(2pi))^2",
+   "kind": "num",
+   "expected": [
+    28.274333882308138
+   ],
+   "var": "x",
+   "why": null
+  },
+  {
+   "id": "2026A-08",
+   "topic": "Logarithms",
+   "lt": "Yra žinoma, kad a = ln 2, b = ln 3 ir log_4 18 = m + p·b/a. Nustatykite sumos m + p reikšmę.",
+   "math": null,
+   "kind": "num",
+   "expected": [
+    1.5
+   ],
+   "var": "x",
+   "why": "reasoning"
+  },
+  {
+   "id": "2026A-09",
+   "topic": "Integrals",
+   "lt": "Raskite funkcijos f(x) = 4x^3 pirmykštę funkciją F(x), jeigu šios pirmykštės funkcijos grafikui priklauso taškas (0; 1).",
+   "math": "antiderivative of 4x^3 through (0, 1)",
+   "kind": "expr",
+   "expected": [
+    1.2401,
+    3.8561000000000005,
+    20.448100000000004
+   ],
+   "var": "x",
+   "why": null
+  },
+  {
+   "id": "2026A-10",
+   "topic": "Trigonometry",
+   "lt": "Nustatykite x reikšmę, su kuria lygybė 4·arccos(x + 2) = 3π yra teisinga.",
+   "math": "4 arccos(x+2) = 3pi",
+   "kind": "set",
+   "expected": [
+    -2.7071067811865475
+   ],
+   "var": "x",
+   "why": null
+  },
+  {
+   "id": "2026A-11.1",
+   "topic": "Inequalities",
+   "lt": "Išspręskite nelygybę |x - 5| > 2.",
+   "math": "|x-5| > 2",
+   "kind": "ineq",
+   "expected": [
+    true,
+    true,
+    true,
+    true,
+    true,
+    true,
+    false,
+    false,
+    true,
+    true,
+    true
+   ],
+   "var": "x",
+   "why": null
+  },
+  {
+   "id": "2026A-11.2",
+   "topic": "Inequalities",
+   "lt": "Išspręskite nelygybę 10·lg(100^x) - 1000 < 0.",
+   "math": "10 lg(100^x) - 1000 < 0",
+   "kind": "ineq",
+   "expected": [
+    true,
+    true,
+    true,
+    true,
+    true,
+    true,
+    true,
+    true,
+    true,
+    true,
+    false
+   ],
+   "var": "x",
+   "why": null
+  },
+  {
+   "id": "2026A-12.1",
+   "topic": "Exponential growth",
+   "lt": "Pirmoje terpėje 10 bakterijų, jų skaičius kas 24 valandas padidėja 4 kartus. Kiek bakterijų bus po 10 parų? Atsakymą parašykite a·2^b pavidalu.",
+   "math": "10*4^10",
+   "kind": "num",
+   "expected": [
+    10485760
+   ],
+   "var": "x",
+   "why": null
+  },
+  {
+   "id": "2026A-12.2",
+   "topic": "Exponential growth",
+   "lt": "Antroje terpėje 10^100 bakterijų, kas valandą sunyksta 9/10 visų bakterijų. Po kelių valandų bus likusi 1 bakterija?",
+   "math": "10^100 * (1/10)^t = 1",
+   "kind": "set",
+   "expected": [
+    100.0
+   ],
+   "var": "t",
+   "why": null
+  },
+  {
+   "id": "2026A-13",
+   "topic": "Powers",
+   "lt": "Skaičiai a, b, c teigiami, a^2·b^3·c^4 = 5^10 ir a^2·b = 5^6. Apskaičiuokite sandaugos a·b·c reikšmę.",
+   "math": null,
+   "kind": "num",
+   "expected": [
+    625
+   ],
+   "var": "x",
+   "why": "reasoning"
+  },
+  {
+   "id": "2026A-14",
+   "topic": "Derivatives",
+   "lt": "Kelio priklausomybę nuo laiko nusako funkcija s(t) = 5t^2 + 40t. Apskaičiuokite momentinį greitį po 2 valandų (t = 2).",
+   "math": "derivative of 5t^2 + 40t at t = 2",
+   "kind": "num",
+   "expected": [
+    60
+   ],
+   "var": "x",
+   "why": null
+  },
+  {
+   "id": "2026A-15.1",
+   "topic": "Vectors",
+   "lt": "(paveikslas) D – kraštinės BC vidurio taškas, AB = a, AC = b. Išreikškite vektorių AD.",
+   "math": null,
+   "kind": "num",
+   "expected": [
+    0
+   ],
+   "var": "x",
+   "why": "figure"
+  },
+  {
+   "id": "2026A-15.2",
+   "topic": "Vectors",
+   "lt": "(paveikslas) Apskaičiuokite vektorių AD ir BC skaliarinę sandaugą, jeigu AB = 5 ir AC = 9.",
+   "math": null,
+   "kind": "num",
+   "expected": [
+    28
+   ],
+   "var": "x",
+   "why": "figure"
+  },
+  {
+   "id": "2026A-16.1",
+   "topic": "Derivatives",
+   "lt": "Kreivė y = sqrt(x + 1) ir tiesė y = 2 susikerta taške A. Parodykite, kad tiesė y = x/4 + 5/4 yra kreivės liestinė taške A.",
+   "math": "tangent line to sqrt(x+1) at x = 3",
+   "kind": "expr",
+   "expected": [
+    1.425,
+    1.575,
+    1.775
+   ],
+   "var": "x",
+   "why": null
+  },
+  {
+   "id": "2026A-16.2",
+   "topic": "Integrals",
+   "lt": "Sukinys gautas sukant apie abscisių ašį kreivinę trapeciją, apribotą kreive y = sqrt(x + 1), tiese x = 3 ir abscisių ašimi. Apskaičiuokite sukinio tūrį.",
+   "math": "integrate from -1 to 3 of pi*(x+1)",
+   "kind": "num",
+   "expected": [
+    25.132741228718345
+   ],
+   "var": "x",
+   "why": null
+  },
+  {
+   "id": "2026A-17.2",
+   "topic": "Derivatives",
+   "lt": "Nustatykite funkcijos V(α) = 72π·sin^2(α)·cos(α) išvestinę.",
+   "math": "d/da 72pi sin(a)^2 cos(a)",
+   "kind": "expr",
+   "expected": [
+    110.01036709410238,
+    -171.16471180535555,
+    -45.960928668981474
+   ],
+   "var": "a",
+   "why": null
+  },
+  {
+   "id": "2026A-17.3",
+   "topic": "Extrema",
+   "lt": "Parodykite, kad V(α) = 72π·sin^2(α)·cos(α) yra didžiausias, kai α = arccos(sqrt(3)/3); α ∈ (0; π/2).",
+   "math": "maximum of 72pi sin(x)^2 cos(x) on (0, pi/2)",
+   "kind": "max",
+   "expected": [
+    0.9553166181245093
+   ],
+   "var": "x",
+   "why": null
+  },
+  {
+   "id": "2026A-18.1",
+   "topic": "Probability",
+   "lt": "Lentynoje 4 matematikos, 3 fizikos ir 1 istorijos knyga. Atsitiktinai paimtos dvi knygos. Tikimybė, kad abi matematikos?",
+   "math": "nCr(4,2)/nCr(8,2)",
+   "kind": "num",
+   "expected": [
+    0.21428571428571427
+   ],
+   "var": "x",
+   "why": null
+  },
+  {
+   "id": "2026A-18.2",
+   "topic": "Probability",
+   "lt": "Du vaikinai paeiliui paima po vieną knygą ir grąžina. Tikimybė, kad abiejų knygos to paties dalyko?",
+   "math": "(4/8)^2 + (3/8)^2 + (1/8)^2",
+   "kind": "num",
+   "expected": [
+    0.40625
+   ],
+   "var": "x",
+   "why": null
+  },
+  {
+   "id": "2026A-18.3",
+   "topic": "Probability",
+   "lt": "Urtė atsitiktinai paėmė tris knygas. Tikimybė, kad bent viena matematikos?",
+   "math": "1 - nCr(4,3)/nCr(8,3)",
+   "kind": "num",
+   "expected": [
+    0.9285714285714286
+   ],
+   "var": "x",
+   "why": null
+  },
+  {
+   "id": "2026A-19.1",
+   "topic": "Geometry",
+   "lt": "(paveikslas) Piramidės SABC visos sienos lygiakraščiai trikampiai, briauna a. Raskite apotemos SH ilgį.",
+   "math": null,
+   "kind": "num",
+   "expected": [
+    0
+   ],
+   "var": "x",
+   "why": "figure"
+  },
+  {
+   "id": "2026A-19.2",
+   "topic": "Geometry",
+   "lt": "(paveikslas) Nustatykite atstumą tarp prasilenkiančių tiesių AB ir SC.",
+   "math": null,
+   "kind": "num",
+   "expected": [
+    0
+   ],
+   "var": "x",
+   "why": "figure"
+  },
+  {
+   "id": "2026A-20.2",
+   "topic": "Number theory",
+   "lt": "Remdamiesi lygybe 2a(a - 1) = (a + b)(a + b - 1), nustatykite, kiek mažiausiai mėlynų kamuoliukų (b lyginis, b ≥ 2) gali būti.",
+   "math": null,
+   "kind": "num",
+   "expected": [
+    6
+   ],
+   "var": "x",
+   "why": "reasoning"
+  },
+  {
+   "id": "2026B-01",
+   "topic": "Sets",
+   "lt": "Duotos dvi aibės A = {1; 4; 9; 16} ir B = {9; 16; 25}. Raskite šių aibių sankirtą A ∩ B.",
+   "math": "{1; 4; 9; 16} ∩ {9; 16; 25}",
+   "kind": "setlit",
+   "expected": [
+    9,
+    16
+   ],
+   "var": "x",
+   "why": null
+  },
+  {
+   "id": "2026B-02",
+   "topic": "Powers",
+   "lt": "Nustatykite a reikšmę, su kuria lygybė 4^(2/3) = root(3, a) yra teisinga.",
+   "math": "4^(2/3) = root(3, a)",
+   "kind": "set",
+   "expected": [
+    16.0
+   ],
+   "var": "a",
+   "why": null
+  },
+  {
+   "id": "2026B-03",
+   "topic": "Equations",
+   "lt": "Nustatykite, kiek sprendinių turi lygtis x + 2 = 2/x.",
+   "math": "x + 2 = 2/x",
+   "kind": "count",
+   "expected": [
+    2
+   ],
+   "var": "x",
+   "why": null
+  },
+  {
+   "id": "2026B-04",
+   "topic": "Trigonometry",
+   "lt": "(paveikslas) Vienetinis apskritimas ir posūkio kampas α. Nustatykite α (laipsniais).",
+   "math": null,
+   "kind": "num",
+   "expected": [
+    0
+   ],
+   "var": "x",
+   "why": "figure"
+  },
+  {
+   "id": "2026B-05",
+   "topic": "Arithmetic",
+   "lt": "Apskaičiuokite reiškinio 10·sqrt((-10)^2) - |-10| reikšmę.",
+   "math": "10 sqrt((-10)^2) - |-10|",
+   "kind": "num",
+   "expected": [
+    90
+   ],
+   "var": "x",
+   "why": null
+  },
+  {
+   "id": "2026B-06",
+   "topic": "Functions",
+   "lt": "Nustatykite funkcijos f(x) = sqrt(2x + 14) apibrėžimo sritį.",
+   "math": "domain of sqrt(2x+14)",
+   "kind": "ineq",
+   "expected": [
+    true,
+    true,
+    true,
+    true,
+    true,
+    true,
+    true,
+    true,
+    true,
+    true,
+    true
+   ],
+   "var": "x",
+   "why": null
+  },
+  {
+   "id": "2026B-07",
+   "topic": "Radicals",
+   "lt": "Panaikinkite iracionalumą trupmenos 3/(sqrt(5) + 1) vardiklyje.",
+   "math": "3/(sqrt(5)+1)",
+   "kind": "num",
+   "expected": [
+    0.9270509831248422
+   ],
+   "var": "x",
+   "why": null
+  },
+  {
+   "id": "2026B-08",
+   "topic": "Trigonometry",
+   "lt": "Yra žinoma, kad sin^2(α) = 0,2. Apskaičiuokite cos^2(α).",
+   "math": "1 - 0.2",
+   "kind": "num",
+   "expected": [
+    0.8
+   ],
+   "var": "x",
+   "why": null
+  },
+  {
+   "id": "2026B-09",
+   "topic": "Combinatorics",
+   "lt": "Šachmatų turnyre dalyvavo 24 šachmatininkai, kiekvienas su kiekvienu sužaidė po vieną partiją. Kiek partijų buvo sužaista?",
+   "math": "nCr(24, 2)",
+   "kind": "num",
+   "expected": [
+    276
+   ],
+   "var": "x",
+   "why": null
+  },
+  {
+   "id": "2026B-10",
+   "topic": "Geometry",
+   "lt": "(paveikslas) Kubo briaunos, prasilenkiančios su tiese CC1.",
+   "math": null,
+   "kind": "num",
+   "expected": [
+    0
+   ],
+   "var": "x",
+   "why": "figure"
+  },
+  {
+   "id": "2026B-11.1",
+   "topic": "Equations",
+   "lt": "Išspręskite lygtį -3x^3 = 375.",
+   "math": "-3x^3 = 375",
+   "kind": "set",
+   "expected": [
+    -5.0
+   ],
+   "var": "x",
+   "why": null
+  },
+  {
+   "id": "2026B-11.2",
+   "topic": "Logarithms",
+   "lt": "Išspręskite lygtį log_2(2x - 6) = log_2 8.",
+   "math": "log(2, 2x-6) = log(2, 8)",
+   "kind": "set",
+   "expected": [
+    7.0
+   ],
+   "var": "x",
+   "why": null
+  },
+  {
+   "id": "2026B-11.3",
+   "topic": "Exponents",
+   "lt": "Išspręskite lygtį 2^x + 2^(x+3) = 36.",
+   "math": "2^x + 2^(x+3) = 36",
+   "kind": "set",
+   "expected": [
+    2.0
+   ],
+   "var": "x",
+   "why": null
+  },
+  {
+   "id": "2026B-11.4",
+   "topic": "Trig equations",
+   "lt": "Išspręskite lygtį tg x - 1 = 0, kai x ∈ (90°; 270°).",
+   "math": "tan(x) - 1 = 0, 90° < x < 270°",
+   "kind": "set",
+   "expected": [
+    225.0
+   ],
+   "var": "x",
+   "why": null
+  },
+  {
+   "id": "2026B-12.1",
+   "topic": "Sequences",
+   "lt": "Pirmą sekmadienį Rimas įdėjo 12 eurų, o kiekvieną kitą – 3 eurais daugiau. Kiek eurų jis įdėjo 5-ą sekmadienį?",
+   "math": "12, 15, 18, ... nth term",
+   "kind": "nth",
+   "expected": [
+    5,
+    24.0
+   ],
+   "var": "n",
+   "why": null
+  },
+  {
+   "id": "2026B-12.2",
+   "topic": "Sequences",
+   "lt": "Kiek eurų Rimas sutaupė per pirmus 8 sekmadienius (12, 15, 18, ...)?",
+   "math": "12 + 15 + 18 + ... + 33",
+   "kind": "num",
+   "expected": [
+    180
+   ],
+   "var": "x",
+   "why": null
+  },
+  {
+   "id": "2026B-12.3",
+   "topic": "Sequences",
+   "lt": "Kelintą sekmadienį Rimas pirmą kartą įdėjo triženklę eurų sumą?",
+   "math": null,
+   "kind": "num",
+   "expected": [
+    31
+   ],
+   "var": "x",
+   "why": "reasoning"
+  },
+  {
+   "id": "2026B-13.1",
+   "topic": "Geometry",
+   "lt": "Taisyklingosios keturkampės piramidės pagrindo įstrižainė BD = 24, šoninė briauna ED = 13. Apskaičiuokite aukštinės EO ilgį.",
+   "math": "sqrt(13^2 - 12^2)",
+   "kind": "num",
+   "expected": [
+    5
+   ],
+   "var": "x",
+   "why": null
+  },
+  {
+   "id": "2026B-13.3",
+   "topic": "Geometry",
+   "lt": "Apskaičiuokite kampo tarp šoninės briaunos ir pagrindo plokštumos kosinusą.",
+   "math": "12/13",
+   "kind": "num",
+   "expected": [
+    0.9230769230769231
+   ],
+   "var": "x",
+   "why": null
+  },
+  {
+   "id": "2026B-14",
+   "topic": "Logarithms",
+   "lt": "Bakterijų skaičius n = 5 + 15/(1 + 0,2·log_2(t + 1)). Kiek per pirmąsias 7 paras sumažėjo bakterijų skaičius?",
+   "math": "(5 + 15/(1 + 0.2 log(2, 0+1))) - (5 + 15/(1 + 0.2 log(2, 7+1)))",
+   "kind": "num",
+   "expected": [
+    5.625
+   ],
+   "var": "x",
+   "why": null
+  },
+  {
+   "id": "2026B-15",
+   "topic": "Geometry",
+   "lt": "Ritinio ašinio pjūvio įstrižainė 37, pagrindo spindulys 6. Apskaičiuokite ritinio tūrį.",
+   "math": "pi*6^2*sqrt(37^2 - 12^2)",
+   "kind": "num",
+   "expected": [
+    3958.4067435231395
+   ],
+   "var": "x",
+   "why": null
+  },
+  {
+   "id": "2026B-16.2",
+   "topic": "Derivatives",
+   "lt": "Raskite funkcijos S(x) = 10x - 2x^2 išvestinę.",
+   "math": "d/dx 10x - 2x^2",
+   "kind": "expr",
+   "expected": [
+    7.2,
+    4.8,
+    1.5999999999999996
+   ],
+   "var": "x",
+   "why": null
+  },
+  {
+   "id": "2026B-16.3",
+   "topic": "Extrema",
+   "lt": "Koks turėtų būti x, kad plotas S(x) = 10x - 2x^2 būtų didžiausias; x ∈ (0; 5)?",
+   "math": "maximum of 10x - 2x^2 on (0, 5)",
+   "kind": "max",
+   "expected": [
+    2.5
+   ],
+   "var": "x",
+   "why": null
+  },
+  {
+   "id": "2026B-16.4",
+   "topic": "Extrema",
+   "lt": "Apskaičiuokite didžiausią galimą ploto S(x) = 10x - 2x^2 reikšmę.",
+   "math": "maximum of 10x - 2x^2 on (0, 5)",
+   "kind": "maxval",
+   "expected": [
+    12.5
+   ],
+   "var": "x",
+   "why": null
+  },
+  {
+   "id": "2026B-17.2",
+   "topic": "Probability",
+   "lt": "10 matematikos ir n istorijos knygų. Tikimybė, kad paimta knyga istorijos, lygi 0,6. Kiek iš viso knygų?",
+   "math": "n/(10+n) = 0.6",
+   "kind": "set",
+   "expected": [
+    15.0
+   ],
+   "var": "n",
+   "why": null
+  },
+  {
+   "id": "2026B-17.3",
+   "topic": "Probability",
+   "lt": "Iš lentynos (10 matematikos, 15 istorijos) paimamos dvi knygos. Tikimybė, kad viena matematikos, kita istorijos?",
+   "math": "10*15/nCr(25,2)",
+   "kind": "num",
+   "expected": [
+    0.5
+   ],
+   "var": "x",
+   "why": null
+  },
+  {
+   "id": "2026B-18",
+   "topic": "Logarithms",
+   "lt": "Yra žinoma, kad a = 2^m. Nustatykite, kam lygu log_2(1/a).",
+   "math": "simplify log(2, 1/2^m)",
+   "kind": "expr",
+   "expected": [
+    -0.7,
+    -1.3,
+    -2.1
+   ],
+   "var": "m",
+   "why": null
+  },
+  {
+   "id": "2026B-19",
+   "topic": "Derivatives",
+   "lt": "Funkcijos f(x) = x^3/3 - 7x^2/2 + 13x - 5 grafiko liestinė taške A su Ox ašimi sudaro 45° kampą. Nustatykite visas x0 reikšmes.",
+   "math": "x^2 - 7x + 13 = 1",
+   "kind": "set",
+   "expected": [
+    3.0,
+    4.0
+   ],
+   "var": "x",
+   "why": null
+  },
+  {
+   "id": "2020-01",
+   "topic": "Powers",
+   "lt": "Suprastinkite 25^2020 / 5.",
+   "math": "25^2020/5",
+   "kind": "power",
+   "expected": [
+    "5",
+    4039
+   ],
+   "var": "x",
+   "why": null
+  },
+  {
+   "id": "2020-02",
+   "topic": "Combinatorics",
+   "lt": "3 parkus reikia sutvarkyti per pirmąsias penkias savaitės dienas, po vieną dieną kiekvienam. Keliais būdais galima sudaryti grafiką?",
+   "math": "nPr(5, 3)",
+   "kind": "num",
+   "expected": [
+    60
+   ],
+   "var": "x",
+   "why": null
+  },
+  {
+   "id": "2020-03",
+   "topic": "Algebra",
+   "lt": "Kai x ≠ -3 ir x ≠ 3, tai x/(x - 3) - (x - 1)/(x + 3) =",
+   "math": "simplify x/(x-3) - (x-1)/(x+3)",
+   "kind": "expr",
+   "expected": [
+    -0.22326674500587537,
+    -0.8344733242134063,
+    -2.5490196078431375
+   ],
+   "var": "x",
+   "why": null
+  },
+  {
+   "id": "2020-04",
+   "topic": "Algebra",
+   "lt": "Nupirkta a knygų po b eurų ir b knygų po a eurų. Vidutinė vienos knygos kaina?",
+   "math": null,
+   "kind": "num",
+   "expected": [
+    0
+   ],
+   "var": "x",
+   "why": "reasoning"
+  },
+  {
+   "id": "2020-05",
+   "topic": "Geometry",
+   "lt": "(paveikslas) Taškas B priklauso pusapskritimiui, AB = AO. Kampas BAC = ?",
+   "math": null,
+   "kind": "num",
+   "expected": [
+    60
+   ],
+   "var": "x",
+   "why": "figure"
+  },
+  {
+   "id": "2020-06",
+   "topic": "Functions",
+   "lt": "Jeigu funkcijos f(x) = (x + 5)/(2x + a) apibrėžimo sritis yra (-∞; 4) ∪ (4; +∞), tai a = ?",
+   "math": "2*4 + a = 0",
+   "kind": "set",
+   "expected": [
+    -8.0
+   ],
+   "var": "a",
+   "why": null
+  },
+  {
+   "id": "2020-08",
+   "topic": "Trigonometry",
+   "lt": "Funkcijos f(x) = 3sin(2x) + 2 reikšmių sritis yra:",
+   "math": "range of 3sin(2x) + 2",
+   "kind": "interval",
+   "expected": [
+    -1,
+    5
+   ],
+   "var": "x",
+   "why": null
+  },
+  {
+   "id": "2020-09",
+   "topic": "Derivatives",
+   "lt": "Funkcijos f(x) = e^(x^2) išvestinė yra:",
+   "math": "d/dx e^(x^2)",
+   "kind": "expr",
+   "expected": [
+    2.28524270793753,
+    14.090649833341137,
+    345.5317467176471
+   ],
+   "var": "x",
+   "why": null
+  },
+  {
+   "id": "2020-10",
+   "topic": "Logarithms",
+   "lt": "Apskaičiuokite log_a 8 · log_2 a (a > 0, a ≠ 1).",
+   "math": "simplify log(a, 8) * log(2, a)",
+   "kind": "expr",
+   "expected": [
+    3.0,
+    3.0,
+    3.0
+   ],
+   "var": "a",
+   "why": null
+  },
+  {
+   "id": "2020-11.1",
+   "topic": "Statistics",
+   "lt": "Mokinių apsilankymai teatre: 1 kartą – 8 mokiniai, 2 kartus – 11, x kartų – 6. Vidurkis 2,4. Apskaičiuokite x.",
+   "math": "(8*1 + 11*2 + 6x)/25 = 2.4",
+   "kind": "set",
+   "expected": [
+    5.0
+   ],
+   "var": "x",
+   "why": null
+  },
+  {
+   "id": "2020-11.2",
+   "topic": "Probability",
+   "lt": "Tikimybė, kad atsitiktinai pasirinktas mokinys teatre apsilankė ne daugiau kaip 2 kartus (8 + 11 iš 25)?",
+   "math": "(8+11)/25",
+   "kind": "num",
+   "expected": [
+    0.76
+   ],
+   "var": "x",
+   "why": null
+  },
+  {
+   "id": "2020-13.1",
+   "topic": "Trigonometry",
+   "lt": "Pažymėję sin 100° = k, cos^2 100° išreikškite per k.",
+   "math": null,
+   "kind": "num",
+   "expected": [
+    0
+   ],
+   "var": "x",
+   "why": "reasoning"
+  },
+  {
+   "id": "2020-14.1",
+   "topic": "Probability",
+   "lt": "Fiksuoto ryšio telefonas suskamba su tikimybe 0,75. Tikimybė, kad nesuskambės?",
+   "math": "1 - 0.75",
+   "kind": "num",
+   "expected": [
+    0.25
+   ],
+   "var": "x",
+   "why": null
+  },
+  {
+   "id": "2020-14.2",
+   "topic": "Probability",
+   "lt": "Tikimybės 0,8 ir 0,75, įvykiai nepriklausomi. Tikimybė, kad suskambės bent vienas telefonas?",
+   "math": "1 - (1-0.8)(1-0.75)",
+   "kind": "num",
+   "expected": [
+    0.95
+   ],
+   "var": "x",
+   "why": null
+  },
+  {
+   "id": "2020-15",
+   "topic": "Algebra",
+   "lt": "Apskaičiuokite a + b, jei ac + ad + bd + bc = 68 ir c + d = 4.",
+   "math": null,
+   "kind": "num",
+   "expected": [
+    17
+   ],
+   "var": "x",
+   "why": "reasoning"
+  },
+  {
+   "id": "2020-16",
+   "topic": "Logarithms",
+   "lt": "Apskaičiuokite xy, jei 2^x = 3 ir 3^y = 16.",
+   "math": "log(2, 3) * log(3, 16)",
+   "kind": "num",
+   "expected": [
+    4
+   ],
+   "var": "x",
+   "why": null
+  },
+  {
+   "id": "2020-18",
+   "topic": "Word problem",
+   "lt": "Treniruotė kainuoja 15 Eur, kas penktai treniruotei taikoma 60 % nuolaida. Kiek daugiausia treniruočių galima apmokėti už 250 Eur?",
+   "math": null,
+   "kind": "num",
+   "expected": [
+    18
+   ],
+   "var": "x",
+   "why": "reasoning"
+  },
+  {
+   "id": "2020-19.1",
+   "topic": "Logarithms",
+   "lt": "Išspręskite lygtį log_5(x - 7) = 0.",
+   "math": "log(5, x-7) = 0",
+   "kind": "set",
+   "expected": [
+    8.0
+   ],
+   "var": "x",
+   "why": null
+  },
+  {
+   "id": "2020-19.2",
+   "topic": "Trig equations",
+   "lt": "Išspręskite lygtį sin x + sin(2x) = 0.",
+   "math": "sin(x) + sin(2x) = 0",
+   "kind": "trig",
+   "expected": [
+    0.0,
+    2.0943951023931957,
+    3.141592653589793,
+    4.188790204786391
+   ],
+   "var": "x",
+   "why": null
+  },
+  {
+   "id": "2020-20.2",
+   "topic": "Extrema",
+   "lt": "Nustatykite, su kuria x reikšme pelnas P(x) = -x^2 + 8x + 180 bus didžiausias.",
+   "math": "maximum of -x^2 + 8x + 180 on (0, 18)",
+   "kind": "max",
+   "expected": [
+    4.0
+   ],
+   "var": "x",
+   "why": null
+  },
+  {
+   "id": "2020-21.2",
+   "topic": "Geometry",
+   "lt": "Prizmės pagrindo plotas 9·sqrt(3), aukštinė 6. Piramidės su tuo pačiu pagrindo plotu ir tūriu aukštinė?",
+   "math": "3 * 9 sqrt(3) * 6 / (9 sqrt(3))",
+   "kind": "num",
+   "expected": [
+    18
+   ],
+   "var": "x",
+   "why": null
+  },
+  {
+   "id": "2020-22.1",
+   "topic": "Sequences",
+   "lt": "Trikampis skaičius T_n = 1 + 2 + ... + n. Apskaičiuokite T18.",
+   "math": "sum k=1 to 18 of k",
+   "kind": "num",
+   "expected": [
+    171
+   ],
+   "var": "x",
+   "why": null
+  },
+  {
+   "id": "2020-22.2",
+   "topic": "Sequences",
+   "lt": "Ar skaičius 7750 yra trikampis skaičius (n(n+1)/2 = 7750)?",
+   "math": "n(n+1)/2 = 7750",
+   "kind": "set",
+   "expected": [
+    -125.0,
+    124.0
+   ],
+   "var": "n",
+   "why": null
+  },
+  {
+   "id": "2020-24",
+   "topic": "Probability",
+   "lt": "Vaikinų 3 kartus daugiau negu merginų. Tikimybė pasirinkti dvi merginas lygi 1/20. Kiek merginų?",
+   "math": "g(g-1)/(4g(4g-1)) = 1/20",
+   "kind": "set",
+   "expected": [
+    4.0
+   ],
+   "var": "g",
+   "why": null
+  },
+  {
+   "id": "2020-25",
+   "topic": "Integrals",
+   "lt": "Figūros, ribojamos f(x) = x^5 ir tiesės per O ir A(1; 1), plotas lygus trečdaliui stačiakampio ploto (a = 1).",
+   "math": "integrate from 0 to 1 of (x - x^5)",
+   "kind": "num",
+   "expected": [
+    0.3333333333333333
+   ],
+   "var": "x",
+   "why": null
+  }
+ ]
+}

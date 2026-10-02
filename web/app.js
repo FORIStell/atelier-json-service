@@ -27,7 +27,7 @@ let degrees = store.get('degrees', false);
 function syncAngle() { $('angleLabel').textContent = degrees ? 'Degrees' : 'Radians'; document.querySelectorAll('[data-angle]').forEach((b) => { b.textContent = degrees ? 'deg' : 'rad'; }); }
 
 // ================================================================ sheets
-const SHEETS = ['calc', 'result', 'write', 'history'];
+const SHEETS = ['calc', 'result', 'write', 'history', 'words'];
 // PC: the picture / screen area is on the left and the calculator or solution stays open on the right
 const deskQuery = matchMedia('(min-width: 900px) and (pointer: fine)');
 let isDesk = deskQuery.matches;
@@ -38,11 +38,12 @@ function openSheet(id) {
   if (!isDesk) { if (id) stopCamera(); else startCamera(); }
   if (id === 'calc') setTimeout(() => mf && mf.focus(), 50);
   if (id === 'write') requestAnimationFrame(sizePad);
+  if (id === 'words') setTimeout(() => $('wordsText').focus(), 60);
   if (id === 'history') renderHistory();
 }
 document.querySelectorAll('[data-close]').forEach((b) => b.addEventListener('click', () => {
   const sheet = b.closest('.sheet').id;
-  openSheet(sheet === 'result' && cameFrom === 'calc' ? 'calc' : null);
+  openSheet(sheet === 'result' && (cameFrom === 'calc' || cameFrom === 'words') ? cameFrom : null);
 }));
 
 // ================================================================ menu & help
@@ -143,7 +144,13 @@ $('closeStillBtn').addEventListener('click', () => {
 // paste a screenshot (Ctrl+V / ⌘V), or the Paste button
 document.addEventListener('paste', (e) => {
   const item = [...(e.clipboardData?.items || [])].find((i) => i.type.startsWith('image/'));
-  if (!item) return; // plain text goes to the calculator as usual
+  if (!item) {
+    // text pasted while no text field has focus (home screen): a word problem
+    const t = e.clipboardData?.getData('text/plain') || '';
+    const target = e.target, typing = target && (target.closest?.('math-field, textarea, input') || target.tagName === 'MATH-FIELD');
+    if (!typing && t.trim().split(/\s+/).length >= 4) { e.preventDefault(); openSheet('words'); $('wordsText').value = t.trim(); }
+    return;
+  }
   e.preventDefault();
   showStill(URL.createObjectURL(item.getAsFile()));
 });
@@ -445,7 +452,8 @@ function solveText(text, { source = 'calc', latex = null, alts = [] } = {}) {
 const safeTex = (t) => { try { return rawTex(parse(t)); } catch { return t; } };
 function renderResult(r, source) {
   $('resultKind').textContent = r.title;
-  $('resultProblem').innerHTML = texHTML(source === 'calc' && current && current.latex ? current.latex : r.inputTex, true);
+  if (r.kind === 'word' || source === 'words') { $('resultProblem').textContent = current ? current.text : ''; $('resultProblem').classList.add('as-text'); }
+  else { $('resultProblem').classList.remove('as-text'); $('resultProblem').innerHTML = texHTML(source === 'calc' && current && current.latex ? current.latex : r.inputTex, true); }
   $('photoNote').hidden = source !== 'photo' && source !== 'write';
   $('photoNote').textContent = 'Read from your ' + (source === 'write' ? 'writing' : 'photo') + '. Something wrong? Tap Edit.';
   renderAlts(source);
@@ -486,7 +494,11 @@ function renderAlts(source) {
   }
   if (!list.children.length) box.hidden = true;
 }
-$('editBtn').addEventListener('click', () => { if (current) openCalcWith(current.text, current.latex); });
+$('editBtn').addEventListener('click', () => {
+  if (!current) return;
+  if (current.source === 'words') { openSheet('words'); $('wordsText').value = current.text; return; }
+  openCalcWith(current.text, current.latex);
+});
 
 // ================================================================ calculator (MathLive + custom keyboard)
 let mf = null;
@@ -512,10 +524,33 @@ function mfText() { return latexToText(mf.getValue('latex')); }
 function solveFromCalc() {
   const latex = mf.getValue('latex').trim();
   if (!latex) { showCalcError('Type a math problem first.'); return; }
+  // a sentence typed with the abc keys is a word problem: solve the plain text
+  const words = latex.match(/\\text\{([^{}]*)\}/g);
+  if (words && words.join(' ').split(/\s+/).length >= 4) { solveWords(latex.replace(/\\text\{([^{}]*)\}/g, '$1').replace(/\\[a-z]+/g, ' ').replace(/[{}]/g, ' ').replace(/\s+/g, ' ').trim()); return; }
   let text;
   try { text = latexToText(latex); } catch (e) { showCalcError(e.message); return; }
   solveText(text, { source: 'calc', latex });
 }
+// ---- word problems: a plain text box
+function solveWords(text) {
+  text = String(text || '').trim();
+  if (!text) { $('wordsError').textContent = 'Type a problem first.'; $('wordsError').hidden = false; return; }
+  let r;
+  try { r = solveProblem(text, { degrees }); } catch (e) {
+    openSheet('words'); $('wordsText').value = text;
+    $('wordsError').textContent = e.message; $('wordsError').hidden = false; return;
+  }
+  $('wordsError').hidden = true;
+  current = { text, latex: null, source: 'words', alts: [] };
+  cameFrom = 'words';
+  renderResult(r, 'words');
+  addHistory(text, null, r.answerText);
+  openSheet('result');
+}
+$('wordsSolve').addEventListener('click', () => solveWords($('wordsText').value));
+$('wordsClear').addEventListener('click', () => { $('wordsText').value = ''; $('wordsError').hidden = true; $('wordsText').focus(); });
+$('wordsText').addEventListener('keydown', (e) => { if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) { e.preventDefault(); solveWords($('wordsText').value); } });
+$('openWords').addEventListener('click', () => openSheet('words'));
 function openCalcWith(text, latex) {
   openSheet('calc');
   const set = () => { if (!mf) return setTimeout(set, 60); mf.setValue(latex || safeTex(text)); livePreview(); };

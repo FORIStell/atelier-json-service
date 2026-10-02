@@ -99,6 +99,9 @@
           <input id="fileInput" type="file" accept="image/*" hidden>
           <svg viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="14" rx="2.5"/><circle cx="9" cy="10" r="1.6"/><path d="M4 17l5-4.5 3.5 3 3-2.5L20 17"/></svg>
         </label>
+        <button class="tool-btn" id="openWords" aria-label="Type a word problem">
+          <svg viewBox="0 0 24 24"><path d="M4 18L9 6l5 12M5.7 14h6.6"/><path d="M15 12.5c.6-1 1.6-1.5 2.7-1.5 1.6 0 2.3 1 2.3 2.4V18"/><path d="M20 15.2c-1-.6-5-.9-5 1.3 0 1.9 3.7 2 5 0"/></svg>
+        </button>
         <button class="tool-btn" id="shareBtn2" aria-label="Share screen" hidden>
           <svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="12" rx="2"/><path d="M8 20h8M12 16v4"/></svg>
         </button>
@@ -184,6 +187,20 @@
     </div>
   </section>
 
+  <!-- ============ WORD PROBLEM SHEET ============ -->
+  <section id="words" class="sheet" hidden>
+    <header class="sheet-head">
+      <span></span><h1>Word problem</h1><button class="link" data-close>Close</button>
+    </header>
+    <p class="sheet-hint">Type or paste a problem in Lithuanian or English · Žodinį uždavinį galite rašyti lietuviškai.</p>
+    <div class="words-wrap"><textarea id="wordsText" rows="7" placeholder="Pvz.: Kostiumo kaina 120 €. Ji sumažinta 15 %. Kokia nauja kaina?"></textarea></div>
+    <div id="wordsError" class="calc-error words-error" hidden></div>
+    <div class="pad-actions">
+      <button id="wordsClear" class="btn">Clear</button>
+      <button id="wordsSolve" class="btn primary">Solve</button>
+    </div>
+  </section>
+
   <!-- ============ HISTORY SHEET ============ -->
   <section id="history" class="sheet" hidden>
     <header class="sheet-head">
@@ -198,6 +215,7 @@
       <div class="menu-brand"><img src="icons/icon-192.png" alt="" width="36" height="36"><b>MathBot</b></div>
       <button data-menu="calc">Calculator</button>
       <button data-menu="write">Write by hand</button>
+      <button data-menu="words">Word problem</button>
       <button data-menu="history">History</button>
       <button data-menu="angle">Angles: <b id="angleLabel">Radians</b></button>
       <button data-menu="accurate">Accurate reader: <b id="accurateLabel">Off</b></button>

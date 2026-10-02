@@ -26,3 +26,14 @@ const words = [
 ];
 for (const [q, want] of words) test(q, () => assert.equal(solveProblem(q).answerText, want));
 test('unknown story problems say so', () => assert.throws(() => solveProblem('Kiek yra trijų skaitmenų skaičių, kurių visi skaitmenys lyginiai?'), /word problem/));
+
+// general word-problem solver (units + concepts), Lithuanian and English
+const general = [
+  ['Pėsčiasis eina 5 km/h greičiu. Kiek laiko jis eis 12 km?', 't = 2.4'],
+  ['Urnoje 3 balti ir 5 juodi rutuliai. Atsitiktinai traukiami 2 rutuliai. Kokia tikimybė, kad abu juodi?', 'P = 5/14'],
+  ['Stačiakampio ilgis 12 cm, plotis 5 cm. Raskite jo plotą, perimetrą ir įstrižainę.', 'S = 60, P = 34, d = 13'],
+  ['Skaičių 84 padalykite santykiu 3 : 4.', 'first = 36, second = 48'],
+  ['A train travels 240 km in 3 hours. What is its average speed?', 'v = 80'],
+  ['The sum of two numbers is 40 and their difference is 10. Find the numbers.', 'x = 25, y = 15'],
+];
+for (const [q, want] of general) test(q, () => assert.equal(solveProblem(q).answerText, want));

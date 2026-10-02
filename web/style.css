@@ -217,3 +217,10 @@ body.desk .home .shade { background: linear-gradient(#0008, transparent 18%, tra
 body.desk .toast { left: calc((100% - var(--side)) / 2); }
 body.desk .menu-panel { max-width: 300px; }
 body.desk .kbd { max-width: 100%; }
+
+/* ---------------- word problems ---------------- */
+.words-wrap { padding: 0 16px; }
+#wordsText { width: 100%; min-height: 160px; resize: vertical; border: 1.5px solid var(--line); border-radius: 14px; padding: 12px 14px; font: 1.05rem/1.5 inherit; color: var(--text); background: var(--panel); }
+#wordsText:focus { outline: none; border-color: var(--accent); }
+.words-error { margin: 8px 16px 0; }
+.problem.as-text { font-size: 1rem; line-height: 1.5; text-align: left; white-space: pre-wrap; }

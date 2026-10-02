@@ -13,13 +13,22 @@ import { geometryProblem } from './geometry.js';
 import { advancedProblem, expTrigIntegral, trigPowerIntegral, domainSteps, intersectIntervals } from './advanced.js';
 import { fromLithuanian, isLithuanian } from './lithuanian.js';
 import { wordProblem, fmt as wpFmt } from './wordproblems.js';
+import { solveWords } from './wordsolver.js';
 
 const S = (x) => simplify(x);
 
 export function solveProblem(input, opts = {}) {
   const original = String(input).trim();
   if (!original) throw new MathError('Please enter a math problem');
+  const wordResult = (wp) => {
+    const t = (v) => (typeof v === 'number' ? formatNumber(v) : v.isInt() ? v.n.toString() : `\\frac{${v.n}}{${v.d}}`);
+    return { kind: 'word', title: wp.title, inputTex: `\\text{${original.replace(/[\\{}$&#%_^~]/g, ' ').slice(0, 140)}${original.length > 140 ? '…' : ''}}`, steps: wp.steps,
+      answerTex: wp.answers.map(([l, v]) => `\\text{${l}} = ${t(v)}`).join(',\\quad '), answerText: wp.answers.map(([l, v]) => `${l} = ${wpFmt(v)}`).join(', ') };
+  };
+  const tryWords = () => { try { const w = solveWords(original); return w && w.answers.length ? wordResult(w) : null; } catch { return null; } };
   if (isLithuanian(original)) { // word problems (VBE style)
+    const w0 = tryWords(); // the general solver first, then the older specific rules
+    if (w0) return w0;
     let wp = null;
     try { wp = wordProblem(original); } catch { wp = null; }
     if (wp && wp.answers.length) {
@@ -33,6 +42,8 @@ export function solveProblem(input, opts = {}) {
   let s = normalizeInput(lt || original).replace(/\s+/g, ' ').trim();
   const lower = s.toLowerCase();
   const res = (kind, title, inputTex, steps, answerTex, answerText, extra = {}) => ({ kind, title, inputTex, steps, answerTex, answerText, ...extra });
+  const looksLikeWords = (original.match(/[A-Za-z]{3,}/g) || []).length >= 5;
+  if (looksLikeWords && !isLithuanian(original)) { const w = tryWords(); if (w) return w; }
   try {
     return dispatch(s, lower, opts, res);
   } catch (e) {

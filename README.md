@@ -33,6 +33,7 @@ Works on **iPhone, Android and PC**, installs like an app, and works **offline**
 * **Camera home screen** – point at a problem, drag the frame corners around it, tap the red button. Or pick a photo from the gallery. Flash button appears on phones that support it.
 * **Calculator** – a math keyboard with templates (□ boxes) for fractions, powers, any root, absolute value, logs, trig, limits, derivatives, integrals, sums, products, nCr and matrices. Hold a key with a red dot for more options (e.g. hold `>` for `< ≥ ≤ ≠`). ← → move the cursor, ⏎ solves, hold ⌫ to clear.
 * **Write** – write a problem with your finger.
+* **Word problem** – type or paste a word problem in Lithuanian or English (menu, or the Aa button; on a PC just paste text). It finds the numbers with their units, recognises the kind of problem (percentages, interest, mixtures, speed/distance/time, work, progressions, probability, counting, statistics, shapes, ratios, ...) and shows the steps.
 * **Menu** – history, degrees/radians, tips.
 
 Each answer comes with explanations of the rule used at every step (e.g. "Subtract 2x from both sides", "Quadratic formula", "Chain rule"), a check of the answer, and a graph when it helps.

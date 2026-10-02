@@ -6,6 +6,7 @@ import { latexToText } from './src/engine/latex.js';
 import { SymbolModel } from './src/ocr/model.js';
 import { grayFromImage, binarize } from './src/ocr/preprocess.js';
 import { recognizeMask } from './src/ocr/recognize.js';
+import { cleanOcrText, textScore } from './src/ocr/text.js';
 import { lang, setLang, trStep, trKind, trAnswer, trError, applyUI, ui } from './src/i18n.js';
 
 const $ = (id) => document.getElementById(id);
@@ -137,7 +138,7 @@ for (const id of ['fileInput', 'fileInput2']) $(id).addEventListener('change', (
 });
 $('closeStillBtn').addEventListener('click', () => {
   still = null; $('still').hidden = true; video.hidden = false; lasso.hidden = true;
-  $('homeHint').textContent = ui('Take a picture of a math problem');
+  syncMode();
   if (isDesk) { webcamWanted = false; stopCamera(); }
   syncHome();
   startCamera();
@@ -154,6 +155,7 @@ document.addEventListener('paste', (e) => {
     return;
   }
   e.preventDefault();
+  if (!$('words').hidden) { const img = new Image(); img.src = URL.createObjectURL(item.getAsFile()); img.decode().then(() => ocrText(img)).then((t) => { $('wordsText').value = t; $('wordsError').hidden = true; }).catch((err) => toast('Could not read that: ' + err.message)); return; }
   showStill(URL.createObjectURL(item.getAsFile()));
 });
 $('pasteBtn').addEventListener('click', async () => {
@@ -194,6 +196,14 @@ async function shareScreen() {
 $('shareBtn').addEventListener('click', shareScreen);
 $('shareBtn2').addEventListener('click', shareScreen);
 $('webcamBtn').addEventListener('click', () => { webcamWanted = true; startCamera(); });
+
+// ---- what the camera reads: math, or a printed word problem (text)
+let readMode = store.get('readMode', 'math');
+function syncMode() {
+  document.querySelectorAll('[data-mode]').forEach((b) => b.classList.toggle('on', b.dataset.mode === readMode));
+  if (!still) $('homeHint').textContent = ui(readMode === 'text' ? 'Take a picture of a word problem' : 'Take a picture of a math problem');
+}
+document.querySelectorAll('[data-mode]').forEach((b) => b.addEventListener('click', () => { readMode = b.dataset.mode; store.set('readMode', readMode); syncMode(); }));
 
 // ---- circle the problem: draw a loop around it, then it is read and solved
 const lasso = $('lasso');
@@ -257,7 +267,7 @@ async function readCircled(path) {
   o.save(); o.beginPath(); o.moveTo(pts[0][0] - x0, pts[0][1] - y0);
   for (const [px, py] of pts) o.lineTo(px - x0, py - y0);
   o.closePath(); o.clip(); o.drawImage(cv, 0, 0); o.restore();
-  await readImage(out, null, 'photo');
+  if (readMode === 'text') await readWords(out); else await readImage(out, null, 'photo');
 }
 
 // resizable frame
@@ -304,7 +314,7 @@ $('shutter').addEventListener('click', async () => {
     src = cv; crop = frameCrop(cv.width, cv.height, false);
   } else { $('fileInput').click(); return; }
   if (crop.w < 10 || crop.h < 10) { toast('Move the frame over the problem'); return; }
-  await readImage(src, crop, 'photo');
+  if (readMode === 'text') await readWords(src, crop); else await readImage(src, crop, 'photo');
 });
 async function readImage(src, crop, source) {
   busy(true, 'Reading the problem…');
@@ -318,6 +328,79 @@ async function readImage(src, crop, source) {
     useRecognized(lines, source);
   } catch (e) { console.error(e); busy(false); toast('Could not read that: ' + e.message); }
 }
+
+// ---- word problems from a picture: printed-text reader (Tesseract, Lithuanian + English, ~10 MB once, then offline)
+let textReader = null;
+function getTextReader() {
+  if (!textReader) textReader = (async () => {
+    const { default: T } = await import('./vendor/tesseract/tesseract.esm.min.js');
+    const base = new URL('vendor/tesseract/', location.href).href;
+    return T.createWorker(['lit', 'eng'], 1, {
+      workerPath: base + 'worker.min.js', corePath: base + 'core', langPath: base + 'lang', workerBlobURL: false,
+      logger: (m) => { if (m.status === 'recognizing text') busy(true, `${ui('Reading the text…')} ${Math.round(100 * m.progress)}%`); else if (/load|initializ/.test(m.status)) busy(true, 'Loading the text reader…'); },
+    });
+  })().catch((e) => { textReader = null; throw e; });
+  return textReader;
+}
+// small or low-contrast pictures read much better a bit larger; a photo also gets an adaptive black/white
+// version (uneven light, shadows) cropped to the text
+function textCanvas(src, crop) {
+  const sw = src.naturalWidth || src.videoWidth || src.width, sh = src.naturalHeight || src.videoHeight || src.height;
+  const c = crop || { x: 0, y: 0, w: sw, h: sh };
+  const k = Math.min(3, Math.max(1, 1400 / c.w));
+  const cv = document.createElement('canvas');
+  cv.width = Math.round(c.w * k); cv.height = Math.round(c.h * k);
+  const ctx = cv.getContext('2d', { willReadFrequently: true });
+  ctx.fillStyle = '#fff'; ctx.fillRect(0, 0, cv.width, cv.height);
+  ctx.drawImage(src, c.x, c.y, c.w, c.h, 0, 0, cv.width, cv.height);
+  return cv;
+}
+function textBW(cv) {
+  const { g, w, h } = grayFromImage(cv, null, 2400);
+  const m = binarize(g, w, h);
+  let x0 = w, y0 = h, x1 = -1, y1 = -1;
+  for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) if (m[y * w + x]) { if (x < x0) x0 = x; if (x > x1) x1 = x; if (y < y0) y0 = y; if (y > y1) y1 = y; }
+  if (x1 < 0) return cv;
+  const pad = 24, ow = x1 - x0 + 1 + 2 * pad, oh = y1 - y0 + 1 + 2 * pad;
+  const out = document.createElement('canvas');
+  out.width = ow; out.height = oh;
+  const o = out.getContext('2d'), img = o.createImageData(ow, oh);
+  img.data.fill(255);
+  for (let y = y0; y <= y1; y++) for (let x = x0; x <= x1; x++) if (m[y * w + x]) { const q = 4 * ((y - y0 + pad) * ow + (x - x0 + pad)); img.data[q] = img.data[q + 1] = img.data[q + 2] = 0; }
+  o.putImageData(img, 0, 0);
+  return out;
+}
+async function ocrText(src, crop) {
+  busy(true, 'Loading the text reader…');
+  try {
+    await nextFrame();
+    const w = await getTextReader();
+    const cv = textCanvas(src, crop);
+    const a = cleanOcrText((await w.recognize(textBW(cv))).data.text);
+    if (textScore(a) >= 6) return a;
+    const b = cleanOcrText((await w.recognize(cv)).data.text);
+    return textScore(b) > textScore(a) ? b : a;
+  } finally { busy(false); }
+}
+// read a word problem from a picture, then solve it (the text stays editable in the word-problem sheet)
+async function readWords(src, crop) {
+  let text;
+  try { text = await ocrText(src, crop); } catch (e) { console.error(e); toast('Could not read that: ' + e.message); return; }
+  if (!text || text.split(/\s+/).length < 3) { toast('I could not find any text. Try again closer, with more light.'); return; }
+  $('wordsText').value = text;
+  solveWords(text);
+}
+$('wordsFile').addEventListener('change', async (e) => {
+  const f = e.target.files[0];
+  e.target.value = '';
+  if (!f) return;
+  const img = new Image();
+  img.src = URL.createObjectURL(f);
+  try { await img.decode(); } catch { toast('That picture could not be opened'); return; }
+  let text;
+  try { text = await ocrText(img); } catch (err) { console.error(err); toast('Could not read that: ' + err.message); return; }
+  $('wordsText').value = text; $('wordsError').hidden = true; $('wordsText').focus();
+});
 
 // ================================================================ OCR helpers
 let modelPromise = null;
@@ -410,7 +493,7 @@ function distinctReadings(latexList) {
   return res;
 }
 function syncAccurate() { const el = $('accurateLabel'); if (el) el.textContent = ui(store.get('accurate', null) ? 'On' : 'Off'); }
-function syncLang() { applyUI(); $('langLabel').textContent = lang === 'lt' ? 'Lietuvių' : 'English'; syncAngle(); syncAccurate(); }
+function syncLang() { applyUI(); syncMode(); $('langLabel').textContent = lang === 'lt' ? 'Lietuvių' : 'English'; syncAngle(); syncAccurate(); }
 
 function useRecognized(lines, source) {
   if (!lines.length) { toast('I could not find any math. Try again closer, with more light.'); return; }

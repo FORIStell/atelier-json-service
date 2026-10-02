@@ -223,4 +223,8 @@ body.desk .kbd { max-width: 100%; }
 #wordsText { width: 100%; min-height: 160px; resize: vertical; border: 1.5px solid var(--line); border-radius: 14px; padding: 12px 14px; font: 1.05rem/1.5 inherit; color: var(--text); background: var(--panel); }
 #wordsText:focus { outline: none; border-color: var(--accent); }
 .words-error { margin: 8px 16px 0; }
+.mode-switch { display: flex; width: fit-content; margin: 0 auto 10px; padding: 3px; border-radius: 999px; background: #000a; gap: 2px; }
+.mode-switch button { border: 0; background: none; color: #fffc; font: 600 .9rem/1 inherit; padding: 7px 14px; border-radius: 999px; cursor: pointer; }
+.mode-switch button.on { background: var(--accent); color: #fff; }
+#wordsPhoto { cursor: pointer; }
 .problem.as-text { font-size: 1rem; line-height: 1.5; text-align: left; white-space: pre-wrap; }

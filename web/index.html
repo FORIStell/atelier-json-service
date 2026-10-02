@@ -82,6 +82,7 @@
     <div id="dropHint" class="drop-hint" hidden>Drop the image</div>
 
     <div class="home-bottom">
+      <div class="mode-switch" role="tablist"><button data-mode="math" class="on">Math</button><button data-mode="text">Word problem</button></div>
       <p class="home-hint" id="homeHint">Take a picture of a math problem</p>
       <div class="shutter-row">
         <button class="side-btn" id="openCalc">
@@ -197,6 +198,7 @@
     <div id="wordsError" class="calc-error words-error" hidden></div>
     <div class="pad-actions">
       <button id="wordsClear" class="btn">Clear</button>
+      <label class="btn" id="wordsPhoto"><input id="wordsFile" type="file" accept="image/*" hidden>From photo</label>
       <button id="wordsSolve" class="btn primary">Solve</button>
     </div>
   </section>

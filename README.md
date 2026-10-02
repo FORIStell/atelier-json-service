@@ -22,6 +22,10 @@ Works on **iPhone, Android and PC**, installs like an app, and works **offline**
 | Limits | `lim x->2 (x^2-4)/(x-2)`, `lim x->oo (3x^2+1)/(x^2-5)` |
 | Sums and series | `Σ` template: Σ n² for n=1..10, Σ k for k=1..n (formula), geometric series to ∞ |
 | Combinatorics, complex numbers | `nCr(10,3)`, `nPr(5,2)`, `(3+4i)/(1+2i)`, `e^(iπ)` |
+| Exact roots and logs | `⁶√(2∛4)` → ¹⁸√32, `2/(1+√2)` → 2√2−2, `√(2+√3)` → (√2+√6)/2, `log 5 + log 2` → 1 |
+| Function analysis (11th–12th grade) | `derivative of x^3 at x=2`, `tangent line to x^2 at x=3`, `extrema of x^3-3x`, `asymptotes of (x^2+1)/(x-1)`, `domain of ln(x+3)/(x-1)`, `inverse of f(x)=(2x+1)/(x-3)` |
+| Sequences and series | `3, 7, 11, ...`, `geometric series 2+4+8+...+256`, `0.5 + 0.25 + ...`, `sum k=1 to n of k^2` |
+| University | `partial fractions (3x+5)/(x^2+x-2)`, `eigenvalues [[2,1],[1,2]]`, `y' = x y`, `y' = y + x`, `∫ e^x sin(x) dx`, complex roots, `|3+4i|` |
 | Statistics, number theory | `mean of 2,4,4,5`, `std of ...`, `gcd(12,18)`, `prime factorization of 360` |
 
 ### The app

@@ -203,7 +203,7 @@ class Parser {
       while (arg.t === 'num' && this.peek() && (this.peek().k === 'id') ) arg = R.bin('*', arg, this.parseExpr(29), true);
       args = [arg];
     }
-    if (name === 'log' && args.length === 2) { base = args[1]; args = [args[0]]; }
+    if (name === 'log' && args.length === 2) { base = args[0]; args = [args[1]]; } // log(b, x) = log base b of x (like log_b(x))
     if ((name === 'root' || name === 'nroot') && args.length === 2) { return withPow(R.fn('root', args), power); }
     let node = R.fn(name, args, base);
     return withPow(node, power);

@@ -10,6 +10,7 @@ import { derivative, integrate, definiteIntegral, limit } from './calculus.js';
 import { toQArray, deg, toNode, rationalRoots, synthDiv } from './poly.js';
 import { matrixProblem } from './matrix.js';
 import { geometryProblem } from './geometry.js';
+import { advancedProblem, expTrigIntegral } from './advanced.js';
 
 const S = (x) => simplify(x);
 
@@ -33,6 +34,11 @@ function P(src, opts) { return fromRaw(parse(src), { degrees: opts.degrees }); }
 function dispatch(s, lower, opts, res) { // eslint-disable-line no-param-reassign
   let m;
   if ((m = s.match(/^(?:evaluate|calculate|compute|find|what is|what's|whats)\s+(.+?)\??$/i)) && !/^(?:the\s+)?(?:derivative|second|third|integral|limit|lim)\b/i.test(m[1])) { s = m[1]; lower = s.toLowerCase(); }
+  // ---------------- 11th-12th grade / university topics ----------------
+  if ((m = advancedProblem(s, opts, res))) return m;
+  // "sum k=1 to n of k^2", "sum of k^2 from k=1 to n"
+  if ((m = s.match(/^(sum|product)\s+([a-z])\s*=\s*(.+?)\s+to\s+(.+?)\s+of\s+(.+)$/i))) return seriesProblem(m[1].toLowerCase() === 'sum' ? 'Σ' : 'Π', m[2], m[3], m[4], m[5], opts, res);
+  if ((m = s.match(/^(sum|product)\s+of\s+(.+?)\s+from\s+([a-z])\s*=\s*(.+?)\s+to\s+(.+)$/i))) return seriesProblem(m[1].toLowerCase() === 'sum' ? 'Σ' : 'Π', m[3], m[4], m[5], m[2], opts, res);
   // ---------------- sums and products ----------------
   if ((m = s.match(/^([ΣΠ])\[([a-z])=(.+?)\.\.(.+?)\]\s*(.+)$/)) || (m = s.match(/^(sum|product)\s+(?:of\s+)?(.+?)\s+for\s+([a-z])\s*=\s*(.+?)\s+to\s+(.+)$/i))) {
     if (/^(sum|product)$/i.test(m[1])) return seriesProblem(m[1].toLowerCase() === 'sum' ? 'Σ' : 'Π', m[3], m[4], m[5], m[2], opts, res);
@@ -345,7 +351,7 @@ function solutionTex(v, r) {
 function solutionText(v, r) {
   if (r.all) return 'All real numbers';
   if (r.general) return r.general.map((g) => `${v} = ${text(g)}`).join(', ') + ' (k any integer)';
-  if (!r.solutions.length) return r.complex && r.complex.length ? 'No real solutions' : 'No solution';
+  if (!r.solutions.length) return r.complex && r.complex.length ? `No real solutions (complex: ${r.complex.map((z) => `${v} = ${text(z)}`).join(', ')})` : 'No solution';
   return r.solutions.map((s) => `${v} = ${text(s)}`).join(', ');
 }
 
@@ -479,7 +485,7 @@ function integralProblem(src, v, a, b, opts, res) {
   }
   const head = `\\int ${rawTex(raw)}\\,d${v}`;
   steps.push({ title: 'Start with the integral', math: head });
-  const F = integrate(node, v, steps);
+  const F = integrate(node, v, steps) || expTrigIntegral(S(node), v, steps);
   if (!F) throw new MathError('I could not find this antiderivative step by step. Try a definite integral (with limits) for a numeric answer.');
   let ans = S(F);
   try { const ex = expand(ans); if (text(ex).length < 1.4 * text(ans).length) ans = ex; } catch { /* keep */ }

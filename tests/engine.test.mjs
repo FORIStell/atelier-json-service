@@ -15,7 +15,7 @@ const cases = [
   ['x/2+1/3=5', 'x = 28/3'],
   ['x^2-5x+6=0', 'x = 2, x = 3'],
   ['2x^2+3x-4=0', 'x = (-3 - sqrt(41))/4, x = (-3 + sqrt(41))/4'],
-  ['x^2+4=0', 'No real solutions'],
+  ['x^2+4=0', 'No real solutions (complex: x = 2*i, x = -2*i)'],
   ['x^3-6x^2+11x-6=0', 'x = 1, x = 2, x = 3'],
   ['x^4-5x^2+4=0', 'x = -2, x = -1, x = 1, x = 2'],
   ['1/x + 1/(x+1) = 1/2', 'x = (3 - sqrt(17))/2, x = (3 + sqrt(17))/2'],
@@ -44,7 +44,7 @@ const cases = [
   ['simplify (x^2-9)/(x+3)', 'x - 3'],
   ['prime factorization of 360', '2^3 × 3^2 × 5'],
   ['solve for y: 2x+3y=6', 'y = (-2*x + 6)/3'],
-  ['sqrt(50)', '5*sqrt(2) ≈ 7.071067812'],
+  ['sqrt(50)', '5*sqrt(2)'],
   ['solve x^2-2x-1=0 for x', 'x = 1 - sqrt(2), x = 1 + sqrt(2)'],
   ['what is 25% of 200', '50'],
   ['evaluate 2x^2-3 at x=4', '29'],
@@ -69,6 +69,59 @@ const cases = [
   ['simplify 3sin(x)^2+3cos(x)^2+1', '4'],
   ['increase 80 by 15%', '92'],
   ['percent change from 50 to 65', '30%'],
+  ['simplify (x^(1/4)+x)/x^(1/4)', 'x^(3/4) + 1'],
+  ['simplify (6x^3+3x)/(3x)', '2*x^2 + 1'],
+  ['simplify (x+1)/x', '(x + 1)/x'],
+  ['simplify (x^3-1)/(x-1)', 'x^2 + x + 1'],
+  ['simplify (x^2-1)/(x^2+2x+1)', '(x - 1)/(x + 1)'],
+  ['simplify (x+1)/(2x+2)', '1/2'],
+  // roots stay exact
+  ['root(6, 2 root(3, 2^2))', '32^(1/18)'],
+  ['sqrt(2)*sqrt(6)', '2*sqrt(3)'],
+  ['1/sqrt(6)', 'sqrt(6)/6'],
+  ['sqrt(8)+sqrt(2)', '3*sqrt(2)'],
+  ['sqrt(12)/sqrt(3)', '2'],
+  ['(sqrt(3))^2', '3'],
+  ['sqrt(2) root(3, 2)', '32^(1/6)'],
+  ['2/(1+sqrt(2))', '-2 + 2*sqrt(2)'],
+  ['(sqrt(5)+1)/(sqrt(5)-1)', '(3 + sqrt(5))/2'],
+  ['sqrt(2+sqrt(3))', '(sqrt(2) + sqrt(6))/2'],
+  ['(2+sqrt(3))*(2-sqrt(3))', '1'],
+  ['(1+sqrt(2))^2', '3 + 2*sqrt(2)'],
+  ['log(5)+log(2)', '1'],
+  ['2log(5)+log(4)', '2'],
+  ['ln(6)-ln(3)-ln(2)', '0'],
+  // 11th-12th grade and university
+  ['log(3, 81)', '4'],
+  ['log(2,x)=5', 'x = 32'],
+  ['derivative of x^3 at x=2', "f'(2) = 12"],
+  ['tangent line to x^2 at x=3', 'y = 6*x - 9'],
+  ['f(x)=x^3-3x extrema', 'local maximum at (-1, 2); local minimum at (1, -2)'],
+  ['asymptotes of (x^2+1)/(x-1)', 'x = 1, y = x + 1'],
+  ['domain of sqrt(4-x^2)', '-2 ≤ x ≤ 2'],
+  ['domain of ln(x+3)/(x-1)', '-3 < x < 1 or x > 1'],
+  ['inverse of f(x)=(2x+1)/(x-3)', 'f^-1(x) = (3*x + 1)/(x - 2)'],
+  ['inverse of y=e^x+1', 'f^-1(x) = ln(x - 1)'],
+  ['partial fractions 1/(x^2-1)', '1/(2*(x - 1)) - 1/(2*(x + 1))'],
+  ['partial fractions 1/(x(x^2+1))', '1/x - x/(x^2 + 1)'],
+  ['eigenvalues [[2,1],[1,2]]', 'λ = 1, λ = 3'],
+  ['|3+4i|', '5'],
+  ["y'=2y", 'y = C*e^(2*x)'],
+  ["y' = y + x", 'y = C*e^x - x - 1'],
+  ['sum k=1 to n of k^2', '(n*(2*n + 1)*(n + 1))/6'],
+  ['arithmetic sequence 3,7,11 nth term', 'a_n = 4*n - 1'],
+  ['geometric series 2+4+8+...+256', '510'],
+  ['1, 4, 9, 16, ...', 'a_n = n^2'],
+  ['integrate e^x sin(x) dx', '-(e^x*cos(x))/2 + (e^x*sin(x))/2 + C'],
+  ['integrate cos(x)^3 dx', '-sin(x)^3/3 + sin(x) + C'],
+  ['lim x->oo (1+2/x)^x', 'e^2'],
+  ['lim x->0 x ln(x)', '0'],
+  ['lim x->oo ln(x)/x', '0'],
+  ['lim x->0 sin(x)/x', '1'],
+  ['sum n=1 to oo of 1/(n(n+1))', '1'],
+  ['sin(2x) = sin(x)', 'x = 2*π*k, x = 2*π*k + π, x = 2*π*k + π/3, x = 2*π*k - π/3 (k any integer)'],
+  ['sin(x) = cos(x)', 'x = π*k + π/4 (k any integer)'],
+  ['4 arccos(x+2) = 3pi', 'x = (-4 - sqrt(2))/2'],
 ];
 for (const [q, want] of cases) {
   test(q, () => {
@@ -77,5 +130,12 @@ for (const [q, want] of cases) {
     assert.ok(r.steps.length > 0);
   });
 }
+test('exact root steps have no decimals until the last step', () => {
+  for (const q of ['root(6, 2 root(3, 2^2))', 'sqrt(12)/sqrt(3)', '3sqrt(2)-sqrt(18)+(2+1)^2']) {
+    const r = solveProblem(q);
+    const body = r.steps.filter((s) => !/Decimal value/.test(s.title));
+    for (const s of body) assert.ok(!/\d\.\d{3}/.test((s.math || '') + (s.detail || '')), q + ': ' + s.title);
+  }
+});
 test('degree mode', () => assert.equal(solveProblem('sin(30)', { degrees: true }).answerText, '1/2 ≈ 0.5'));
 test('bad input gives a friendly error', () => assert.throws(() => solveProblem('2+*'), /./));

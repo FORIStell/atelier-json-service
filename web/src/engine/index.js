@@ -2,7 +2,7 @@
 import { Q, MathError, isQ, toNum, formatNumber, primeFactors } from './rational.js';
 import { parse, normalizeInput } from './parser.js';
 import { fromRaw, simplify, expand, has, freeVars, evalNum, isNum, isInt, equal, sub, div, mul, add, pow, num, sym, polyCoeffs, numerDenom, subst, allRational, key, ZERO, ONE } from './cas.js';
-import { tex, text, rawTex, relTex } from './print.js';
+import { tex, text, rawTex, relTex, isNegative, negate } from './print.js';
 import { arithmeticSteps } from './arith.js';
 import { factorExpr } from './factor.js';
 import { solveEquation, solveInequality, solveSystem, solveCompound, intervalsTex, intervalsText, chooseVar } from './solve.js';
@@ -10,15 +10,42 @@ import { derivative, integrate, definiteIntegral, limit } from './calculus.js';
 import { toQArray, deg, toNode, rationalRoots, synthDiv } from './poly.js';
 import { matrixProblem } from './matrix.js';
 import { geometryProblem } from './geometry.js';
+import { advancedProblem, expTrigIntegral, trigPowerIntegral, domainSteps, intersectIntervals } from './advanced.js';
+import { fromLithuanian, isLithuanian } from './lithuanian.js';
+import { wordProblem, fmt as wpFmt } from './wordproblems.js';
+import { solveWords } from './wordsolver.js';
 
 const S = (x) => simplify(x);
 
 export function solveProblem(input, opts = {}) {
   const original = String(input).trim();
   if (!original) throw new MathError('Please enter a math problem');
-  let s = normalizeInput(original).replace(/\s+/g, ' ').trim();
+  const wordResult = (wp) => {
+    const t = (v) => (typeof v === 'number' ? formatNumber(v) : v.isInt() ? v.n.toString() : `\\frac{${v.n}}{${v.d}}`);
+    return { kind: 'word', title: wp.title, inputTex: `\\text{${original.replace(/[\\{}$&#%_^~]/g, ' ').slice(0, 140)}${original.length > 140 ? '…' : ''}}`, steps: wp.steps,
+      answerTex: wp.answers.map(([l, v]) => `\\text{${l}} = ${t(v)}`).join(',\\quad '), answerText: wp.answers.map(([l, v]) => `${l} = ${wpFmt(v)}`).join(', ') };
+  };
+  const tryWords = () => { try { const w = solveWords(original); return w && w.answers.length ? wordResult(w) : null; } catch { return null; } };
+  if (isLithuanian(original)) { // word problems (VBE style)
+    const w0 = tryWords(); // the general solver first, then the older specific rules
+    if (w0) return w0;
+    let wp = null;
+    try { wp = wordProblem(original); } catch { wp = null; }
+    if (wp && wp.answers.length) {
+      const t = (v) => (typeof v === 'number' ? formatNumber(v) : v.isInt() ? v.n.toString() : `\\frac{${v.n}}{${v.d}}`);
+      return { kind: 'word', title: wp.title, inputTex: `\\text{${original.replace(/[\\{}$&#%_^~]/g, ' ').slice(0, 140)}${original.length > 140 ? '…' : ''}}`, steps: wp.steps,
+        answerTex: wp.answers.map(([l, v]) => `\\text{${l}} = ${t(v)}`).join(',\\quad '), answerText: wp.answers.map(([l, v]) => `${l} = ${wpFmt(v)}`).join(', ') };
+    }
+  }
+  const lt = fromLithuanian(original); // Lithuanian exam wording -> a command
+  if (lt === '__STORY__') throw new MathError('I can’t solve this word problem yet. Write it as an equation or an expression (for example 210/3) and I will solve it step by step.');
+  let s = normalizeInput(lt || original).replace(/\s+/g, ' ').trim();
   const lower = s.toLowerCase();
   const res = (kind, title, inputTex, steps, answerTex, answerText, extra = {}) => ({ kind, title, inputTex, steps, answerTex, answerText, ...extra });
+  const looksLikeWords = (original.match(/[A-Za-z]{3,}/g) || []).length >= 5;
+  if (looksLikeWords && !isLithuanian(original)) { const w = tryWords(); if (w) return w; }
+  // a long story where all we found is one bare number ("... kampas A lygus 60 ..."): not solved, don't pretend
+  if (original.trim().split(/\s+/).length >= 8 && /^[-−\d.,\s]+$/.test(s) && (isLithuanian(original) || looksLikeWords)) throw new MathError('I can’t solve this word problem yet. Write it as an equation or an expression (for example 210/3) and I will solve it step by step.');
   try {
     return dispatch(s, lower, opts, res);
   } catch (e) {
@@ -33,6 +60,11 @@ function P(src, opts) { return fromRaw(parse(src), { degrees: opts.degrees }); }
 function dispatch(s, lower, opts, res) { // eslint-disable-line no-param-reassign
   let m;
   if ((m = s.match(/^(?:evaluate|calculate|compute|find|what is|what's|whats)\s+(.+?)\??$/i)) && !/^(?:the\s+)?(?:derivative|second|third|integral|limit|lim)\b/i.test(m[1])) { s = m[1]; lower = s.toLowerCase(); }
+  // ---------------- 11th-12th grade / university topics ----------------
+  if ((m = advancedProblem(s, opts, res))) return m;
+  // "sum k=1 to n of k^2", "sum of k^2 from k=1 to n"
+  if ((m = s.match(/^(sum|product)\s+([a-z])\s*=\s*(.+?)\s+to\s+(.+?)\s+of\s+(.+)$/i))) return seriesProblem(m[1].toLowerCase() === 'sum' ? 'Σ' : 'Π', m[2], m[3], m[4], m[5], opts, res);
+  if ((m = s.match(/^(sum|product)\s+of\s+(.+?)\s+from\s+([a-z])\s*=\s*(.+?)\s+to\s+(.+)$/i))) return seriesProblem(m[1].toLowerCase() === 'sum' ? 'Σ' : 'Π', m[3], m[4], m[5], m[2], opts, res);
   // ---------------- sums and products ----------------
   if ((m = s.match(/^([ΣΠ])\[([a-z])=(.+?)\.\.(.+?)\]\s*(.+)$/)) || (m = s.match(/^(sum|product)\s+(?:of\s+)?(.+?)\s+for\s+([a-z])\s*=\s*(.+?)\s+to\s+(.+)$/i))) {
     if (/^(sum|product)$/i.test(m[1])) return seriesProblem(m[1].toLowerCase() === 'sum' ? 'Σ' : 'Π', m[3], m[4], m[5], m[2], opts, res);
@@ -159,6 +191,17 @@ function arithmetic(src, opts, res, inputTex, raw) {
     const isExactNum = exact.t === 'num';
     return res('arithmetic', 'Evaluate', inputTex || rawTex(raw), steps, `${tex(exact)}${isExactNum ? '' : ` \\approx ${formatNumber(v)}`}`, isExactNum ? text(exact) : `${text(exact)} ≈ ${formatNumber(v)}`);
   }
+  // log(5) + log(2): use the log rules instead of decimals
+  const lr = logRuleSteps(raw);
+  if (lr) return res('arithmetic', 'Calculate', inputTex || rawTex(raw), lr.steps, tex(lr.value), text(lr.value));
+  // roots that don't come out even: keep them exact (√12 -> 2√3), decimal only as the last step
+  const ex = arithmeticSteps(raw, { ...opts, exact: true });
+  if (ex && ex.exact) {
+    const v = evalNum(ex.exact);
+    ex.steps.push({ title: 'Decimal value (if you need it)', math: `${tex(ex.exact)} \\approx ${formatNumber(v)}` });
+    return res('arithmetic', 'Calculate', inputTex || rawTex(raw), ex.steps, tex(ex.exact), text(ex.exact));
+  }
+  if (ex) return res('arithmetic', 'Calculate', inputTex || rawTex(raw), ex.steps, ex.answerTex, ex.answerText);
   const r = arithmeticSteps(raw, opts);
   if (!isQ(r.value)) {
     // irrational result: also give the exact simplified form (e.g. sqrt(50) = 5*sqrt(2))
@@ -173,6 +216,38 @@ function arithmetic(src, opts, res, inputTex, raw) {
   return res('arithmetic', 'Calculate', inputTex || rawTex(raw), r.steps, r.answerTex, r.answerText);
 }
 
+// sums/differences of logs with one base whose combined value is exact: log a + log b = log(ab), log a - log b = log(a/b)
+function logRuleSteps(raw) {
+  const node = fromRaw(raw);
+  if (node.t !== 'add') return null;
+  const terms = [];
+  (function flat(x) { if (x.t === 'add') x.a.forEach(flat); else terms.push(x); })(node);
+  let base = null, prod = Q.of(1);
+  const parts = [];
+  for (const t of terms) {
+    let k = Q.of(1), f = t;
+    if (t.t === 'mul' && t.a.length === 2 && t.a[0].t === 'num' && isQ(t.a[0].v) && t.a[0].v.isInt()) { k = t.a[0].v; f = t.a[1]; }
+    if (f.t !== 'fn' || (f.n !== 'log' && f.n !== 'ln') || f.a[0].t !== 'num' || !isQ(f.a[0].v) || f.a[0].v.sign() <= 0) return null;
+    const b = f.n === 'ln' ? 'e' : f.a[1] && f.a[1].t === 'num' ? f.a[1].v.toString() : null;
+    if (!b || (base && b !== base)) return null;
+    base = b;
+    prod = prod.mul(f.a[0].v.powInt(k.n));
+    parts.push([k, f]);
+  }
+  const value = simplify(node);
+  if (value.t !== 'num') return null;
+  const f0 = parts[0][1];
+  const L = (x) => (f0.n === 'ln' ? `\\ln\\left(${x}\\right)` : base === '10' ? `\\log\\left(${x}\\right)` : `\\log_{${base}}\\left(${x}\\right)`);
+  const anyPow = parts.some(([k]) => !k.abs().isOne());
+  const steps = [{ title: 'Start with the problem', math: rawTex(raw) }];
+  if (anyPow) steps.push({ title: 'Power rule: $k\\log a = \\log a^k$', math: parts.map(([k, f], i) => `${i && k.sign() > 0 ? '+ ' : k.sign() < 0 ? '- ' : ''}${L(k.abs().isOne() ? tex(f.a[0]) : `${tex(f.a[0])}^{${k.abs()}}`)}`).join(' ') });
+  const prodTex = parts.map(([k, f]) => (k.sign() > 0 ? `${tex(f.a[0])}${k.isOne() ? '' : `^{${k}}`}` : null)).filter(Boolean).join(' \\cdot ') || '1';
+  const denTex = parts.map(([k, f]) => (k.sign() < 0 ? `${tex(f.a[0])}${k.abs().isOne() ? '' : `^{${k.abs()}}`}` : null)).filter(Boolean).join(' \\cdot ');
+  steps.push({ title: 'Product and quotient rules: $\\log a + \\log b = \\log(ab)$, $\\log a - \\log b = \\log\\frac{a}{b}$', math: `${L(denTex ? `\\frac{${prodTex}}{${denTex}}` : prodTex)} = ${L(tex(num(prod)))}` });
+  steps.push({ title: 'Evaluate the logarithm', detail: f0.n === 'ln' ? `\\ln(1) = 0` : `${base}^{${tex(value)}} = ${tex(num(prod))}`, math: tex(value) });
+  return { steps, value };
+}
+
 function simplifyProblem(src, opts, res, raw) {
   raw = raw || parse(src);
   const node = fromRaw(raw, { degrees: opts.degrees });
@@ -182,14 +257,32 @@ function simplifyProblem(src, opts, res, raw) {
   const [N, D] = numerDenom(cur);
   const vars = [...freeVars(cur)];
   if (has(D) && vars.length >= 1) {
+    // a single term on the bottom: divide every term on top by it, if that leaves no fractions
+    if (D.t !== 'add') {
+      const eN = expand(N);
+      const tops = eN.t === 'add' ? eN.a : [eN];
+      const parts = tops.map((t) => S(div(t, D)));
+      if (tops.length > 1 && parts.every((p) => !has(numerDenom(p)[1]))) {
+        const sum = (xs, f) => xs.map((x, i) => (i === 0 ? (isNegative(x) ? '-' + f(negate(x)) : f(x)) : (isNegative(x) ? ' - ' : ' + ') + f(isNegative(x) ? negate(x) : x))).join('');
+        steps.push({ title: 'Split the fraction: divide every term on top by the bottom', math: sum(tops, (t) => `\\frac{${tex(t)}}{${tex(D)}}`) });
+        steps.push({ title: 'Simplify each part. Same base: subtract the exponents, $\\frac{x^a}{x^b} = x^{a-b}$', math: sum(parts, (p) => (p.t === 'add' ? `\\left(${tex(p)}\\right)` : tex(p))) });
+        cur = S(add(parts));
+        if (tex(cur) !== sum(parts, tex)) steps.push({ title: 'Combine like terms', math: tex(cur) });
+        steps.push({ title: 'Restriction (the bottom can\'t be zero)', detail: `${tex(D)} \\ne 0` });
+        return res('simplify', 'Simplify', rawTex(raw), steps, tex(cur), text(cur));
+      }
+    }
     let fN, fD;
     try { fN = factorExpr(N, []).result; fD = factorExpr(D, []).result; } catch { fN = N; fD = D; }
-    steps.push({ title: 'Factor the numerator and the denominator', math: `\\frac{${tex(fN)}}{${tex(fD)}}` });
+    if (!equal(fN, S(N)) || !equal(fD, S(D))) steps.push({ title: 'Factor the numerator and the denominator', math: `\\frac{${tex(fN)}}{${tex(fD)}}` });
     const reduced = cancelFactors(fN, fD);
-    if (reduced) {
-      steps.push({ title: 'Cancel the common factors', math: tex(reduced.result), detail: reduced.cancelled.length ? `\\text{cancelled: } ${reduced.cancelled.map(tex).join(',\\ ')}` : undefined });
+    if (reduced && reduced.cancelled.length) {
+      steps.push({ title: 'Cancel the common factors', math: tex(reduced.result), detail: `\\text{cancelled: } ${reduced.cancelled.map(tex).join(',\\ ')}` });
       cur = reduced.result;
-      if (reduced.cancelled.length) steps.push({ title: 'Restriction', detail: reduced.cancelled.map((c) => `${tex(c)} \\ne 0`).join(',\\ ') });
+      steps.push({ title: 'Restriction', detail: reduced.cancelled.map((c) => `${tex(c)} \\ne 0`).join(',\\ ') });
+    } else {
+      cur = S(div(fN, fD));
+      steps.push({ title: 'The top and bottom have no common factors, so this is already as simple as it gets', math: tex(cur) });
     }
     return res('simplify', 'Simplify', rawTex(raw), steps, tex(cur), text(cur));
   }
@@ -284,7 +377,7 @@ function solutionTex(v, r) {
 function solutionText(v, r) {
   if (r.all) return 'All real numbers';
   if (r.general) return r.general.map((g) => `${v} = ${text(g)}`).join(', ') + ' (k any integer)';
-  if (!r.solutions.length) return r.complex && r.complex.length ? 'No real solutions' : 'No solution';
+  if (!r.solutions.length) return r.complex && r.complex.length ? `No real solutions (complex: ${r.complex.map((z) => `${v} = ${text(z)}`).join(', ')})` : 'No solution';
   return r.solutions.map((s) => `${v} = ${text(s)}`).join(', ');
 }
 
@@ -321,6 +414,14 @@ function inequalityProblem(l, op, r, raw, forVar, res) {
   if (!v) { const d = evalNum(S(sub(l, r))); const ok = { '<': d < 0, '>': d > 0, '<=': d <= 0, '>=': d >= 0, '!=': d !== 0 }[op]; return res('check', 'Check', rawTex(raw), [], ok ? '\\text{True}' : '\\text{False}', ok ? 'True' : 'False'); }
   const steps = [{ title: 'Start with the inequality', math: rawTex(raw) }];
   const out = solveInequality(l, op, r, v, steps);
+  // keep only x where both sides are defined (logs, roots, fractions)
+  try {
+    const dom = domainSteps(S(sub(l, r)), v, []);
+    if (!(dom.length === 1 && dom[0][0] === -Infinity && dom[0][1] === Infinity)) {
+      const cut = intersectIntervals(out.intervals, dom);
+      if (intervalsText(cut, v) !== intervalsText(out.intervals, v)) { steps.push({ title: 'Keep only the values where everything is defined', math: intervalsTex(dom, v) }); out.intervals = cut; }
+    }
+  } catch { /* no domain information */ }
   const ans = intervalsTex(out.intervals, v);
   steps.push({ title: 'Answer', math: ans });
   return res('inequality', `Solve for ${v}`, rawTex(raw), steps, ans, intervalsText(out.intervals, v));
@@ -418,7 +519,7 @@ function integralProblem(src, v, a, b, opts, res) {
   }
   const head = `\\int ${rawTex(raw)}\\,d${v}`;
   steps.push({ title: 'Start with the integral', math: head });
-  const F = integrate(node, v, steps);
+  const F = integrate(node, v, steps) || expTrigIntegral(S(node), v, steps) || trigPowerIntegral(S(node), v, steps);
   if (!F) throw new MathError('I could not find this antiderivative step by step. Try a definite integral (with limits) for a numeric answer.');
   let ans = S(F);
   try { const ex = expand(ans); if (text(ex).length < 1.4 * text(ans).length) ans = ex; } catch { /* keep */ }
@@ -489,6 +590,33 @@ function complexProblem(node, raw, res) {
   return res('complex', 'Complex numbers', rawTex(raw), steps, tex(out), text(out));
 }
 
+// Σ 1/(n(n+1)) from n = a to ∞: split into partial fractions c_i/(n + a_i); the terms cancel (telescope)
+function telescoping(body, v, a0) {
+  const [N, D] = numerDenom(body);
+  const pn = toQArray(polyCoeffs(N, v) || []), pd = toQArray(polyCoeffs(D, v) || []);
+  if (!pn || !pd || pd.length < 3 || pn.length >= pd.length - 1) return null;
+  const { roots, rest } = rationalRoots(pd);
+  if (rest.length !== 1 || roots.length !== pd.length - 1) return null;
+  const shifts = roots.map((r) => r.neg());
+  if (!shifts.every((q) => q.isInt()) || new Set(shifts.map(String)).size !== shifts.length) return null;
+  // cover-up: c_i = N(r_i) / D'(r_i)
+  const evalP = (p, x) => p.reduceRight((acc, c) => acc.mul(x).add(c), Q.of(0));
+  const dpd = pd.slice(1).map((c, i) => c.mul(Q.of(i + 1)));
+  const cs = roots.map((r) => evalP(pn, r).div(evalP(dpd, r)));
+  if (!cs.reduce((x, y) => x.add(y), Q.of(0)).isZero()) return null;
+  const H = (m) => { let h = Q.of(0); for (let j = 1n; j <= m; j++) h = h.add(new Q(1n, j)); return h; };
+  if (shifts.some((q) => a0 + Number(q.n) - 1 < 0)) return null;
+  let val = Q.of(0);
+  cs.forEach((c, i) => { val = val.sub(c.mul(H(BigInt(a0) + shifts[i].n - 1n))); });
+  const pf = cs.map((c, i) => S(div(num(c), add(sym(v), num(shifts[i]))))).map(tex).join(' + ').replace(/\+ -/g, '- ');
+  const steps = [
+    { title: 'Split the term into partial fractions', math: `${tex(body)} = ${pf}` },
+    { title: 'Write out the first terms: almost everything cancels (a telescoping sum)', detail: '\\text{only the first few terms survive as } n \\to \\infty' },
+    { title: 'Add the terms that are left', math: tex(num(val)) },
+  ];
+  return { value: num(val), steps };
+}
+
 function seriesProblem(kind, v, loSrc, hiSrc, bodySrc, opts, res) {
   const body = S(fromRaw(parse(bodySrc)));
   const lo = S(P(loSrc, opts)), hi = S(P(hiSrc, opts));
@@ -528,6 +656,8 @@ function seriesProblem(kind, v, loSrc, hiSrc, bodySrc, opts, res) {
       steps.push({ title: 'Because $|r| < 1$, use $S = \\frac{a}{1 - r}$', math: `\\frac{${tex(t0)}}{1 - ${wrapT(r1)}} = ${tex(val)}` });
       return res('series', 'Infinite series', head, steps, tex(val), text(val));
     }
+    const tele = kind === 'Σ' ? telescoping(body, v, a) : null;
+    if (tele) { tele.steps.forEach((q) => steps.push(q)); return res('series', 'Infinite series', head, steps, tex(tele.value), text(tele.value)); }
     let sum = 0, prev = 0;
     for (let k = a; k < a + 200000; k++) { prev = sum; sum += evalNum(body, { [v]: k }); }
     if (!Number.isFinite(sum) || Math.abs(sum - prev) > 1e-6 * Math.max(1, Math.abs(sum))) { steps.push({ title: 'The terms do not shrink fast enough, so the series diverges' }); return res('series', 'Infinite series', head, steps, '\\text{diverges}', 'Diverges'); }

@@ -414,17 +414,65 @@ function simpson(f, v, a, b, n = 2000) {
 // ===========================================================================
 // Limits
 // ===========================================================================
+let limitDepth = 0;
 export function limit(f, v, a, steps, dir = 0) {
+  if (limitDepth > 6) throw new MathError('This limit is too complicated for me');
+  limitDepth++;
+  try { return limitCore(f, v, a, steps, dir); } finally { limitDepth--; }
+}
+// 0·∞ -> fraction, 1^∞ / 0^0 / ∞^0 -> e^(lim g ln f)
+function indeterminate(f, v, a, steps, dir, L, near) {
+  const isVarFactor = (x) => has(x, v);
+  if (f.t === 'pow' && has(f.b, v) && has(f.e, v)) {
+    const g = S(mul(f.e, fn('ln', f.b)));
+    steps.push({ title: 'Variable in the base and the exponent: write $f^g = e^{g \\ln f}$', math: `${L} ${tex(f)} = e^{${L} ${tex(g)}}` });
+    const r = limit(g, v, a, steps, dir);
+    if (r.dne) return r;
+    const val = S(pow(E, r.value));
+    steps.push({ title: 'So the limit is', math: tex(val) });
+    return { value: val, approx: r.approx };
+  }
+  if (f.t === 'mul') {
+    const isDen = (x) => x.t === 'pow' && x.e.t === 'num' && nvSign(x.e.v) < 0; // already a fraction: the 0/0 rules handle it
+    const vals = f.a.map((x) => (isVarFactor(x) ? near(x) : evalNum(x)));
+    const zi = vals.findIndex((q) => Math.abs(q) < 1e-6), ii = vals.findIndex((q) => Math.abs(q) > 1e5 || (Math.abs(q) > 8 && /ln|log/.test(tex(f.a[vals.indexOf(q)]))));
+    if (zi >= 0 && ii >= 0 && !f.a.some(isDen)) {
+      const g = f.a[zi], h = f.a[ii], others = f.a.filter((_, i) => i !== zi && i !== ii);
+      const expLike = (x) => x.t === 'pow' && has(x.e, v) && !has(x.b, v);
+      const powLike = (x) => (x.t === 'sym' && x.n === v) || (x.t === 'pow' && x.b.t === 'sym' && x.b.n === v && !has(x.e, v));
+      // L'Hôpital on N/D with D = 1/(one factor): pick the orientation that differentiates nicely
+      const [N, Dn] = expLike(g) || !powLike(h) ? [h, S(pow(g, num(-1)))] : [g, S(pow(h, num(-1)))];
+      const k = others.length ? S(mul(others)) : ONE;
+      steps.push({ title: 'Form $0 \\cdot \\infty$: rewrite the product as a fraction, then use L’Hôpital’s rule', math: `${L} ${tex(f)} = ${L} \\frac{${tex(N)}}{${tex(Dn)}}` });
+      const dn = derivative(N, v, []), dd = derivative(Dn, v, []);
+      steps.push({ title: 'Differentiate the top and bottom', math: `${L} \\frac{${tex(dn)}}{${tex(dd)}}` });
+      const r = limit(S(mul(k, div(dn, dd))), v, a, steps, dir);
+      return r;
+    }
+  }
+  return null;
+}
+function limitCore(f, v, a, steps, dir = 0) {
   f = S(f);
   const L = `\\lim_{${v} \\to ${tex(a)}${dir > 0 ? '^+' : dir < 0 ? '^-' : ''}}`;
   const atInf = a.t === 'sym' && a.n === 'oo' || (a.t === 'mul' && a.a.some((x) => x.t === 'sym' && x.n === 'oo'));
-  if (atInf) return limitInf(f, v, a, steps, L);
+  if (atInf) {
+    const sg = evalNum(a) > 0 ? 1 : -1;
+    const ind = indeterminate(f, v, a, steps, dir, L, (x) => safe(() => evalNum(x, { [v]: sg * 1e7 })));
+    if (ind) return ind;
+    return limitInf(f, v, a, steps, L);
+  }
   const av = evalNum(a);
   const sub1 = safe(() => evalNum(f, { [v]: av }));
   if (Number.isFinite(sub1)) {
     const exact = S(subst(f, v, a));
     steps.push({ title: 'Direct substitution works (the function is continuous here)', math: `${L} ${tex(f)} = ${tex(exact)}` });
     return { value: exact };
+  }
+  {
+    const side = (x) => { const r = safe(() => evalNum(x, { [v]: av + 1e-8 })); return Number.isFinite(r) ? r : safe(() => evalNum(x, { [v]: av - 1e-8 })); };
+    const ind = indeterminate(f, v, a, steps, dir, L, side);
+    if (ind) return ind;
   }
   let [N, Dn] = numerDenom(f);
   const nA = safe(() => evalNum(N, { [v]: av })), dA = safe(() => evalNum(Dn, { [v]: av }));
@@ -458,12 +506,23 @@ export function limit(f, v, a, steps, dir = 0) {
   if (dir > 0 || dir < 0) {
     const s = dir > 0 ? right : left;
     if (big(s)) { const r = s > 0 ? sym('oo') : neg(sym('oo')); steps.push({ title: 'The function grows without bound', math: `${L} ${tex(f)} = ${tex(S(r))}` }); return { value: S(r) }; }
+    const s2 = safe(() => evalNum(f, { [v]: av + dir * 1e-10 }));
+    if (Number.isFinite(s) && Number.isFinite(s2) && Math.abs(s - s2) < 1e-4 * Math.max(1, Math.abs(s))) {
+      const r0 = Math.abs(s2) < 1e-6 ? ZERO : num(Number(s2.toPrecision(6)));
+      steps.push({ title: 'Approach from that side', math: `${L} ${tex(f)} = ${tex(r0)}` });
+      return { value: r0, approx: r0 !== ZERO };
+    }
   }
   if (big(left) || big(right)) {
     steps.push({ title: 'Check each side (the denominator approaches 0)', detail: `${v} \\to ${tex(a)}^-: \\ ${left > 0 ? '+\\infty' : '-\\infty'},\\qquad ${v} \\to ${tex(a)}^+: \\ ${right > 0 ? '+\\infty' : '-\\infty'}` });
     if (Math.sign(left) === Math.sign(right)) { const r = S(left > 0 ? sym('oo') : neg(sym('oo'))); return { value: r }; }
     steps.push({ title: 'The one-sided limits are different, so the limit does not exist' });
     return { dne: true };
+  }
+  if (!Number.isFinite(left) !== !Number.isFinite(right)) { // only one side exists (e.g. ln x near 0)
+    const s1 = Number.isFinite(left) ? left : right;
+    steps.push({ title: `The function only exists on one side, so take the ${Number.isFinite(left) ? 'left' : 'right'}-hand limit` });
+    return limit(f, v, a, steps, Number.isFinite(left) ? -1 : 1) || { value: num(Number(s1.toPrecision(6))), approx: true };
   }
   const est = (left + right) / 2;
   if (Math.abs(left - right) < 1e-4 * Math.max(1, Math.abs(est))) {
@@ -497,6 +556,16 @@ function limitInf(f, v, a, steps, L) {
     const r = S(lead > 0 ? sym('oo') : neg(sym('oo')));
     steps.push({ title: 'A polynomial behaves like its leading term', math: `${L} ${tex(f)} = ${L} ${tex(S(mul(cn[n], pow(sym(v), num(n)))))} = ${tex(r)}` });
     return { value: r };
+  }
+  // ∞/∞ or 0/0 with functions: L'Hôpital
+  if (has(Dn, v)) {
+    const at = (x, X) => Math.abs(safe(() => evalNum(x, { [v]: sign * X })));
+    const big = (x) => at(x, 1e8) > 8 && at(x, 1e8) > 1.5 * at(x, 1e4), small = (x) => at(x, 1e8) < 1e-4;
+    if ((big(N) && big(Dn)) || (small(N) && small(Dn))) {
+      const dn = derivative(N, v, []), dd = derivative(Dn, v, []);
+      steps.push({ title: `Form $\\frac{${big(N) ? '\\infty' : '0'}}{${big(N) ? '\\infty' : '0'}}$: L’Hôpital’s rule, differentiate the top and bottom`, math: `${L} \\frac{${tex(N)}}{${tex(Dn)}} = ${L} \\frac{${tex(dn)}}{${tex(dd)}}` });
+      return limit(S(div(dn, dd)), v, a, steps);
+    }
   }
   // numeric
   const xs = [1e3, 1e4, 1e5, 1e6].map((x) => x * sign);

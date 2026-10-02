@@ -25,6 +25,7 @@ export function fromRaw(r, opts = {}) {
   const f = (x) => fromRaw(x, opts);
   switch (r.t) {
     case 'num': return num(r.v);
+    case 'cas': return r.x;
     case 'sym':
       if (r.n === 'oo') return INF;
       return sym(r.n);
@@ -116,7 +117,9 @@ export function evalNum(x, env = {}) {
       const b = evalNum(x.b, env), e = evalNum(x.e, env);
       if (b < 0 && !Number.isInteger(e)) {
         // odd roots of negatives, e.g. (-8)^(1/3)
-        if (x.e.t === 'num' && isQ(x.e.v) && x.e.v.d % 2n === 1n) return -Math.pow(-b, e) * (x.e.v.n % 2n === 0n ? -1 : 1);
+        let en = x.e;
+        if (en.t !== 'num' && !has(en)) { try { en = simplify(en); } catch { /* keep */ } }
+        if (en.t === 'num' && isQ(en.v) && en.v.d % 2n === 1n) return -Math.pow(-b, e) * (en.v.n % 2n === 0n ? -1 : 1);
         return NaN;
       }
       return Math.pow(b, e);
@@ -253,6 +256,25 @@ function simpAdd(terms) {
     }
     void kk;
   }
+  // log(5) + log(2) = log(10) = 1: combine logs with the same base when the result comes out exact
+  const logs = new Map();
+  for (const [kk, g] of groups) {
+    const r = g[1];
+    if (!r || r.t !== 'fn' || (r.n !== 'log' && r.n !== 'ln') || !isQ(g[0]) || !g[0].isInt() || r.a[0].t !== 'num' || !isQ(r.a[0].v) || r.a[0].v.sign() <= 0) continue;
+    const base = r.n === 'ln' ? 'e' : r.a[1] && r.a[1].t === 'num' && isQ(r.a[1].v) ? r.a[1].v.toString() : null;
+    if (!base) continue;
+    if (!logs.has(base)) logs.set(base, []);
+    logs.get(base).push(kk);
+  }
+  for (const [base, ks] of logs) {
+    if (ks.length < 2) continue;
+    let prod = Q.of(1);
+    for (const kk of ks) { const [k, r] = groups.get(kk); prod = prod.mul(r.a[0].v.powInt(k.n)); }
+    const v = base === 'e' ? (prod.isOne() ? Q.of(0) : null) : exactLog(prod, groups.get(ks[0])[1].a[1].v);
+    if (v === null) continue;
+    c = nvAdd(c, v);
+    for (const kk of ks) groups.delete(kk);
+  }
   const out = [];
   for (const [k, rest] of groups.values()) {
     if (nvIsZero(k)) continue;
@@ -302,19 +324,31 @@ function simpMul(factors, opts = {}) {
       }
     }
   }
-  // merge numeric-base radicals: sqrt(2)*sqrt(3) -> sqrt(6) (same rational exponent)
-  const rad = new Map(), keep = [];
+  // merge numeric-base radicals through prime powers: sqrt(2)*sqrt(6) -> 2 sqrt(3), 2^(1/6)*4^(1/18) -> 2^(5/18) -> root(18, 32)
+  const primes = new Map(), keep = [];
   for (const f of out) {
     if (f.t === 'pow' && f.b.t === 'num' && isQ(f.b.v) && f.e.t === 'num' && isQ(f.e.v) && !f.e.v.isInt() && f.b.v.sign() > 0) {
-      const k = f.e.v.toString();
-      if (rad.has(k)) rad.get(k).b = rad.get(k).b.mul(f.b.v); else rad.set(k, { b: f.b.v, e: f.e.v });
+      for (const [p, k] of primePowerMap(f.b.v)) {
+        const e = k.mul(f.e.v), old = primes.get(p);
+        primes.set(p, old ? old.add(e) : e);
+      }
     } else keep.push(f);
   }
-  for (const { b, e } of rad.values()) {
-    const p = simpPow(num(b), num(e), opts);
-    if (p.t === 'num') c = nvMul(c, p.v);
-    else if (p.t === 'mul') { for (const q of p.a) { if (q.t === 'num') c = nvMul(c, q.v); else keep.push(q); } }
-    else keep.push(p);
+  if (primes.size) {
+    // whole parts of the exponents go to the coefficient; the rest share one root index
+    let L = 1n, inner = 1n;
+    for (const e of primes.values()) L = (L * e.d) / bgcd(L, e.d);
+    for (const [p, e] of primes) {
+      const fl = e.n / e.d - (e.n < 0n && e.n % e.d !== 0n ? 1n : 0n);
+      c = nvMul(c, new Q(p).powInt(fl));
+      inner *= p ** ((e.n - fl * e.d) * (L / e.d));
+    }
+    if (inner !== 1n) {
+      const p = simpRadical(new Q(inner), new Q(1n, L));
+      if (p.t === 'num') c = nvMul(c, p.v);
+      else if (p.t === 'mul') { for (const q of p.a) { if (q.t === 'num') c = nvMul(c, q.v); else keep.push(q); } }
+      else keep.push(p);
+    }
   }
   if (nvIsZero(c)) return num(0);
   keep.sort(factorCompare);
@@ -347,7 +381,19 @@ function simpRadical(base, e) {
   if (coef.isOne()) return radNode;
   return { t: 'mul', a: [num(coef), radNode] };
 }
-function extractPower(n, k) {
+// n (positive rational) as primes -> exponent; a factor that can't be split stays whole
+export function primePowerMap(n) {
+  const m = new Map();
+  const addAll = (x, sgn) => {
+    if (x <= 1n) return;
+    const fs = primeFactors(x);
+    if (!fs.length || fs[fs.length - 1] > 10n ** 12n) { m.set(x, (m.get(x) || Q.of(0)).add(Q.of(sgn))); return; }
+    for (const p of fs) m.set(p, (m.get(p) || Q.of(0)).add(Q.of(sgn)));
+  };
+  addAll(n.n, 1); addAll(n.d, -1);
+  return m;
+}
+export function extractPower(n, k) {
   // n = out^k * rest
   if (n <= 1n) return [1n, n];
   let out = 1n, rest = 1n;
@@ -452,6 +498,7 @@ function simpFn(n, a, opts = {}) {
   switch (n) {
     case 'abs':
       if (x.t === 'num') return num(isQ(x.v) ? x.v.abs() : Math.abs(x.v));
+      if (!has(x) && !has(x, 'i')) { try { const v = evalNum(x); if (v < 0) return simplify(expand(mul(num(-1), x))); if (v >= 0) return x; } catch { /* keep |x| */ } }
       if (x.t === 'mul' && x.a[0].t === 'num' && nvSign(x.a[0].v) < 0) return simpFn('abs', [simpMul([num(-1), x])]);
       if (x.t === 'pow' && x.b.t === 'sym' && isInt(x.e) && x.e.v.n % 2n === 0n) return x;
       if (!has(x)) { const v = evalNum(x); if (v >= 0) return x; return simpMul([num(-1), x]); }

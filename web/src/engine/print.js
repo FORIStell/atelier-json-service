@@ -110,7 +110,7 @@ function powTex(x) {
   if (e.t === 'num' && isQ(e.v)) {
     if (e.v.sign() < 0) return mulTex({ t: 'mul', a: [x] });
     if (e.v.eq(new Q(1n, 2n))) return `\\sqrt{${tex(b)}}`;
-    if (e.v.n === 1n && e.v.d <= 9n) return `\\sqrt[${e.v.d}]{${tex(b)}}`;
+    if (e.v.n === 1n && e.v.d <= 99n) return `\\sqrt[${e.v.d}]{${tex(b)}}`;
   }
   if (b.t === 'fn' && !['abs', 'fact'].includes(b.n) && FN_TEX[b.n] && e.t === 'num' && isQ(e.v) && e.v.isInt() && e.v.sign() > 0) {
     return `${FN_TEX[b.n]}^{${tex(e)}}\\left(${tex(b.a[0])}\\right)`;
@@ -198,9 +198,13 @@ const textP = (x) => (['num', 'sym', 'fn'].includes(x.t) && !isNegative(x) && !(
 // ---------- raw (as-typed) trees ----------
 export function rawTex(r) {
   switch (r.t) {
+    case 'cas': return tex(r.x); // an exact value worked out step by step (e.g. a simplified root)
     case 'num': return r.src && !isQ(r.v) ? r.src : r.src ?? numTex(r.v);
     case 'sym': return SYM_TEX[r.n] || r.n;
-    case 'paren': return r.br === '[' ? `\\left[${rawTex(r.a)}\\right]` : `\\left(${rawTex(r.a)}\\right)`;
+    case 'paren':
+      // brackets around brackets, or around a fraction bar (which already groups), add nothing
+      if (r.a.t === 'paren' || (r.a.t === 'bin' && r.a.op === '/' && !r.a.obelus)) return rawTex(r.a);
+      return r.br === '[' ? `\\left[${rawTex(r.a)}\\right]` : `\\left(${rawTex(r.a)}\\right)`;
     case 'neg': return '-' + (r.a.t === 'bin' && (r.a.op === '+' || r.a.op === '-') ? `\\left(${rawTex(r.a)}\\right)` : rawTex(r.a));
     case 'bin': {
       const l = rawTex(r.l), rr = rawTex(r.r);
@@ -241,5 +245,5 @@ export function rawTex(r) {
   return '?';
 }
 const rawNeg = (r) => r.t === 'neg' || (r.t === 'num' && (r.v.sign ? r.v.sign() < 0 : r.v < 0));
-const stripParen = (r) => rawTex(r.t === 'paren' ? r.a : r);
+const stripParen = (r) => { while (r.t === 'paren') r = r.a; return rawTex(r); };
 export { numTex };

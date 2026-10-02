@@ -1,0 +1,2330 @@
+{
+ "points": [
+  0.7,
+  1.3,
+  2.1
+ ],
+ "ipoints": [
+  -3.5,
+  -2,
+  -0.5,
+  0.5,
+  1.5,
+  2.5,
+  3.5,
+  6
+ ],
+ "problems": [
+  {
+   "cat": "Equations",
+   "q": "2x+3=11",
+   "kind": "set",
+   "expected": [
+    4.0
+   ],
+   "src": ""
+  },
+  {
+   "cat": "Equations",
+   "q": "3(x-2)+4=2x+7",
+   "kind": "set",
+   "expected": [
+    9.0
+   ],
+   "src": ""
+  },
+  {
+   "cat": "Equations",
+   "q": "x/3 + x/4 = 7",
+   "kind": "set",
+   "expected": [
+    12.0
+   ],
+   "src": ""
+  },
+  {
+   "cat": "Equations",
+   "q": "x^2-5x+6=0",
+   "kind": "set",
+   "expected": [
+    2.0,
+    3.0
+   ],
+   "src": ""
+  },
+  {
+   "cat": "Equations",
+   "q": "2x^2+3x-2=0",
+   "kind": "set",
+   "expected": [
+    -2.0,
+    0.5
+   ],
+   "src": ""
+  },
+  {
+   "cat": "Equations",
+   "q": "x^2-2x-1=0",
+   "kind": "set",
+   "expected": [
+    -0.41421356237309503,
+    2.414213562373095
+   ],
+   "src": ""
+  },
+  {
+   "cat": "Equations",
+   "q": "4x^2-12x+9=0",
+   "kind": "set",
+   "expected": [
+    1.5
+   ],
+   "src": ""
+  },
+  {
+   "cat": "Equations",
+   "q": "x^3-6x^2+11x-6=0",
+   "kind": "set",
+   "expected": [
+    1.0,
+    2.0,
+    3.0
+   ],
+   "src": ""
+  },
+  {
+   "cat": "Equations",
+   "q": "x^4-13x^2+36=0",
+   "kind": "set",
+   "expected": [
+    -3.0,
+    -2.0,
+    2.0,
+    3.0
+   ],
+   "src": ""
+  },
+  {
+   "cat": "Equations",
+   "q": "x^3-8=0",
+   "kind": "set",
+   "expected": [
+    2.0
+   ],
+   "src": ""
+  },
+  {
+   "cat": "Equations",
+   "q": "1/x + 1/(x+1) = 1/2",
+   "kind": "set",
+   "expected": [
+    -0.5615528128088303,
+    3.5615528128088303
+   ],
+   "src": ""
+  },
+  {
+   "cat": "Equations",
+   "q": "(x+1)/(x-2) = 3",
+   "kind": "set",
+   "expected": [
+    3.5
+   ],
+   "src": ""
+  },
+  {
+   "cat": "Equations",
+   "q": "sqrt(x+7) = x+1",
+   "kind": "set",
+   "expected": [
+    2.0
+   ],
+   "src": ""
+  },
+  {
+   "cat": "Equations",
+   "q": "sqrt(2x-1) = 3",
+   "kind": "set",
+   "expected": [
+    5.0
+   ],
+   "src": ""
+  },
+  {
+   "cat": "Equations",
+   "q": "|2x-1| = 5",
+   "kind": "set",
+   "expected": [
+    -2.0,
+    3.0
+   ],
+   "src": ""
+  },
+  {
+   "cat": "Equations",
+   "q": "|x-3| = 2x",
+   "kind": "set",
+   "expected": [
+    1.0
+   ],
+   "src": ""
+  },
+  {
+   "cat": "Exponents & logs",
+   "q": "2^(x+1) = 16",
+   "kind": "set",
+   "expected": [
+    3.0
+   ],
+   "src": "VBE"
+  },
+  {
+   "cat": "Exponents & logs",
+   "q": "3^(2x-1) = 27",
+   "kind": "set",
+   "expected": [
+    2.0
+   ],
+   "src": ""
+  },
+  {
+   "cat": "Exponents & logs",
+   "q": "4^x - 3*2^x - 4 = 0",
+   "kind": "set",
+   "expected": [
+    2.0
+   ],
+   "src": "VBE"
+  },
+  {
+   "cat": "Exponents & logs",
+   "q": "9^x - 10*3^x + 9 = 0",
+   "kind": "set",
+   "expected": [
+    0.0,
+    2.0
+   ],
+   "src": ""
+  },
+  {
+   "cat": "Exponents & logs",
+   "q": "e^(2x) - 5e^x + 6 = 0",
+   "kind": "set",
+   "expected": [
+    0.6931471805599453,
+    1.0986122886681098
+   ],
+   "src": ""
+  },
+  {
+   "cat": "Exponents & logs",
+   "q": "5^x = 12",
+   "kind": "set",
+   "expected": [
+    1.5439593106327714
+   ],
+   "src": ""
+  },
+  {
+   "cat": "Exponents & logs",
+   "q": "log(2, x) = 5",
+   "kind": "set",
+   "expected": [
+    32.0
+   ],
+   "src": ""
+  },
+  {
+   "cat": "Exponents & logs",
+   "q": "log(2, x-1) + log(2, x+1) = 3",
+   "kind": "set",
+   "expected": [
+    3.0
+   ],
+   "src": "VBE"
+  },
+  {
+   "cat": "Exponents & logs",
+   "q": "ln(x) = 2",
+   "kind": "set",
+   "expected": [
+    7.38905609893065
+   ],
+   "src": ""
+  },
+  {
+   "cat": "Exponents & logs",
+   "q": "log(x) + log(x-3) = 1",
+   "kind": "set",
+   "expected": [
+    5.0
+   ],
+   "src": ""
+  },
+  {
+   "cat": "Exponents & logs",
+   "q": "ln(x+1) - ln(x) = ln(2)",
+   "kind": "set",
+   "expected": [
+    1.0
+   ],
+   "src": ""
+  },
+  {
+   "cat": "Exponents & logs",
+   "q": "log(2, 32)",
+   "kind": "num",
+   "expected": [
+    5.0
+   ],
+   "src": ""
+  },
+  {
+   "cat": "Exponents & logs",
+   "q": "log(3, 1/9)",
+   "kind": "num",
+   "expected": [
+    -2.0
+   ],
+   "src": ""
+  },
+  {
+   "cat": "Exponents & logs",
+   "q": "log(4) + log(25)",
+   "kind": "num",
+   "expected": [
+    2.0
+   ],
+   "src": ""
+  },
+  {
+   "cat": "Exponents & logs",
+   "q": "log(2, 12) - log(2, 3)",
+   "kind": "num",
+   "expected": [
+    2.0
+   ],
+   "src": ""
+  },
+  {
+   "cat": "Exponents & logs",
+   "q": "27^(2/3)",
+   "kind": "num",
+   "expected": [
+    9.0
+   ],
+   "src": ""
+  },
+  {
+   "cat": "Exponents & logs",
+   "q": "(1/8)^(-1/3)",
+   "kind": "num",
+   "expected": [
+    2.0
+   ],
+   "src": ""
+  },
+  {
+   "cat": "Exponents & logs",
+   "q": "16^(-3/4)",
+   "kind": "num",
+   "expected": [
+    0.125
+   ],
+   "src": ""
+  },
+  {
+   "cat": "Exponents & logs",
+   "q": "e^(ln 7)",
+   "kind": "num",
+   "expected": [
+    7.0
+   ],
+   "src": ""
+  },
+  {
+   "cat": "Radicals",
+   "q": "sqrt(50) - sqrt(18)",
+   "kind": "num",
+   "expected": [
+    2.8284271247461903
+   ],
+   "src": ""
+  },
+  {
+   "cat": "Radicals",
+   "q": "sqrt(12) * sqrt(3)",
+   "kind": "num",
+   "expected": [
+    6.0
+   ],
+   "src": ""
+  },
+  {
+   "cat": "Radicals",
+   "q": "6/sqrt(3)",
+   "kind": "num",
+   "expected": [
+    3.4641016151377544
+   ],
+   "src": ""
+  },
+  {
+   "cat": "Radicals",
+   "q": "1/(sqrt(5)-2)",
+   "kind": "num",
+   "expected": [
+    4.23606797749979
+   ],
+   "src": ""
+  },
+  {
+   "cat": "Radicals",
+   "q": "(sqrt(3)+1)^2",
+   "kind": "num",
+   "expected": [
+    7.464101615137754
+   ],
+   "src": ""
+  },
+  {
+   "cat": "Radicals",
+   "q": "root(3, 54) + root(3, 16)",
+   "kind": "num",
+   "expected": [
+    6.299605249474366
+   ],
+   "src": ""
+  },
+  {
+   "cat": "Radicals",
+   "q": "sqrt(7+4sqrt(3))",
+   "kind": "num",
+   "expected": [
+    3.732050807568877
+   ],
+   "src": ""
+  },
+  {
+   "cat": "Arithmetic",
+   "q": "2/3 + 3/4 - 5/6",
+   "kind": "num",
+   "expected": [
+    0.5833333333333334
+   ],
+   "src": ""
+  },
+  {
+   "cat": "Arithmetic",
+   "q": "(3/4) / (9/8)",
+   "kind": "num",
+   "expected": [
+    0.6666666666666666
+   ],
+   "src": ""
+  },
+  {
+   "cat": "Arithmetic",
+   "q": "2^10 - 3^5",
+   "kind": "num",
+   "expected": [
+    781.0
+   ],
+   "src": ""
+  },
+  {
+   "cat": "Arithmetic",
+   "q": "15% of 240",
+   "kind": "num",
+   "expected": [
+    36.0
+   ],
+   "src": ""
+  },
+  {
+   "cat": "Arithmetic",
+   "q": "0.125 * 64",
+   "kind": "num",
+   "expected": [
+    8.0
+   ],
+   "src": ""
+  },
+  {
+   "cat": "Inequalities",
+   "q": "2x - 5 > 3",
+   "kind": "ineq",
+   "expected": [
+    false,
+    false,
+    false,
+    false,
+    false,
+    false,
+    false,
+    true
+   ],
+   "src": ""
+  },
+  {
+   "cat": "Inequalities",
+   "q": "x^2 - 4 < 0",
+   "kind": "ineq",
+   "expected": [
+    false,
+    false,
+    true,
+    true,
+    true,
+    false,
+    false,
+    false
+   ],
+   "src": ""
+  },
+  {
+   "cat": "Inequalities",
+   "q": "x^2 - x - 6 >= 0",
+   "kind": "ineq",
+   "expected": [
+    true,
+    true,
+    false,
+    false,
+    false,
+    false,
+    true,
+    true
+   ],
+   "src": ""
+  },
+  {
+   "cat": "Inequalities",
+   "q": "(x-1)/(x+2) <= 0",
+   "kind": "ineq",
+   "expected": [
+    false,
+    false,
+    true,
+    true,
+    false,
+    false,
+    false,
+    false
+   ],
+   "src": ""
+  },
+  {
+   "cat": "Inequalities",
+   "q": "|x-1| < 3",
+   "kind": "ineq",
+   "expected": [
+    false,
+    false,
+    true,
+    true,
+    true,
+    true,
+    true,
+    false
+   ],
+   "src": ""
+  },
+  {
+   "cat": "Inequalities",
+   "q": "|2x+1| >= 5",
+   "kind": "ineq",
+   "expected": [
+    true,
+    false,
+    false,
+    false,
+    false,
+    true,
+    true,
+    true
+   ],
+   "src": ""
+  },
+  {
+   "cat": "Inequalities",
+   "q": "-1 < 2x+3 < 7",
+   "kind": "ineq",
+   "expected": [
+    false,
+    false,
+    true,
+    true,
+    true,
+    false,
+    false,
+    false
+   ],
+   "src": ""
+  },
+  {
+   "cat": "Inequalities",
+   "q": "x^3 - x > 0",
+   "kind": "ineq",
+   "expected": [
+    false,
+    false,
+    true,
+    false,
+    true,
+    true,
+    true,
+    true
+   ],
+   "src": ""
+  },
+  {
+   "cat": "Inequalities",
+   "q": "2^x > 8",
+   "kind": "ineq",
+   "expected": [
+    false,
+    false,
+    false,
+    false,
+    false,
+    false,
+    true,
+    true
+   ],
+   "src": ""
+  },
+  {
+   "cat": "Systems",
+   "q": "2x + y = 7, x - y = 2",
+   "kind": "set",
+   "expected": [
+    3.0,
+    1.0
+   ],
+   "src": ""
+  },
+  {
+   "cat": "Systems",
+   "q": "x + y + z = 6, x - y + z = 2, 2x + y - z = 1",
+   "kind": "set",
+   "expected": [
+    1.0,
+    2.0,
+    3.0
+   ],
+   "src": ""
+  },
+  {
+   "cat": "Systems",
+   "q": "3x - 2y = 4, 6x + y = 13",
+   "kind": "set",
+   "expected": [
+    2.0,
+    1.0
+   ],
+   "src": ""
+  },
+  {
+   "cat": "Trigonometry",
+   "q": "sin(pi/6) + cos(pi/3)",
+   "kind": "num",
+   "expected": [
+    1.0
+   ],
+   "src": ""
+  },
+  {
+   "cat": "Trigonometry",
+   "q": "tan(pi/4) * sin(pi/2)",
+   "kind": "num",
+   "expected": [
+    1.0
+   ],
+   "src": ""
+  },
+  {
+   "cat": "Trigonometry",
+   "q": "cos(2pi/3)",
+   "kind": "num",
+   "expected": [
+    -0.5
+   ],
+   "src": ""
+  },
+  {
+   "cat": "Trigonometry",
+   "q": "sin(5pi/4)",
+   "kind": "num",
+   "expected": [
+    -0.7071067811865476
+   ],
+   "src": ""
+  },
+  {
+   "cat": "Trigonometry",
+   "q": "arcsin(sqrt(3)/2)",
+   "kind": "num",
+   "expected": [
+    1.0471975511965979
+   ],
+   "src": ""
+  },
+  {
+   "cat": "Trigonometry",
+   "q": "arctan(1)",
+   "kind": "num",
+   "expected": [
+    0.7853981633974483
+   ],
+   "src": ""
+  },
+  {
+   "cat": "Trigonometry",
+   "q": "sin(pi/12)",
+   "kind": "num",
+   "expected": [
+    0.25881904510252074
+   ],
+   "src": ""
+  },
+  {
+   "cat": "Trig equations",
+   "q": "2sin(x) - 1 = 0",
+   "kind": "trig",
+   "expected": [
+    0.5235987755982989,
+    2.6179938779914944
+   ],
+   "src": ""
+  },
+  {
+   "cat": "Trig equations",
+   "q": "cos(x) = -1/2",
+   "kind": "trig",
+   "expected": [
+    2.0943951023931957,
+    4.188790204786391
+   ],
+   "src": ""
+  },
+  {
+   "cat": "Trig equations",
+   "q": "tan(x) = sqrt(3)",
+   "kind": "trig",
+   "expected": [
+    1.0471975511965979,
+    4.188790204786391
+   ],
+   "src": ""
+  },
+  {
+   "cat": "Trig equations",
+   "q": "2cos(x)^2 - cos(x) - 1 = 0",
+   "kind": "trig",
+   "expected": [
+    0.0,
+    2.0943951023931957,
+    4.188790204786391
+   ],
+   "src": ""
+  },
+  {
+   "cat": "Trig equations",
+   "q": "sin(2x) = sin(x)",
+   "kind": "trig",
+   "expected": [
+    0.0,
+    1.0471975511965979,
+    3.141592653589793,
+    5.235987755982989
+   ],
+   "src": ""
+  },
+  {
+   "cat": "Trig equations",
+   "q": "sin(x)^2 = 1/4",
+   "kind": "trig",
+   "expected": [
+    0.5235987755982989,
+    2.6179938779914944,
+    3.6651914291880923,
+    5.759586531581288
+   ],
+   "src": ""
+  },
+  {
+   "cat": "Trig equations",
+   "q": "2sin(x)^2 + 3sin(x) + 1 = 0",
+   "kind": "trig",
+   "expected": [
+    3.6651914291880923,
+    4.71238898038469,
+    5.759586531581288
+   ],
+   "src": ""
+  },
+  {
+   "cat": "Trig equations",
+   "q": "sin(x) = cos(x)",
+   "kind": "trig",
+   "expected": [
+    0.7853981633974483,
+    3.9269908169872414
+   ],
+   "src": ""
+  },
+  {
+   "cat": "Trig identities",
+   "q": "simplify sin(x)^2 + cos(x)^2 + tan(x)*cos(x)",
+   "kind": "expr",
+   "expected": [
+    1.644217687237691,
+    1.963558185417193,
+    1.8632093666488738
+   ],
+   "src": "",
+   "var": "x"
+  },
+  {
+   "cat": "Trig identities",
+   "q": "simplify (1 - cos(x)^2)/sin(x)",
+   "kind": "expr",
+   "expected": [
+    0.644217687237691,
+    0.963558185417193,
+    0.8632093666488737
+   ],
+   "src": "",
+   "var": "x"
+  },
+  {
+   "cat": "Trig identities",
+   "q": "simplify sin(x)/cos(x) * cos(x)^2",
+   "kind": "expr",
+   "expected": [
+    0.4927248649942301,
+    0.2577506859107321,
+    -0.4357878862067941
+   ],
+   "src": "",
+   "var": "x"
+  },
+  {
+   "cat": "Functions",
+   "q": "domain of sqrt(x-2)",
+   "kind": "ineq",
+   "expected": [
+    false,
+    false,
+    false,
+    false,
+    false,
+    true,
+    true,
+    true
+   ],
+   "src": ""
+  },
+  {
+   "cat": "Functions",
+   "q": "domain of ln(4-x^2)",
+   "kind": "ineq",
+   "expected": [
+    false,
+    false,
+    true,
+    true,
+    true,
+    false,
+    false,
+    false
+   ],
+   "src": ""
+  },
+  {
+   "cat": "Functions",
+   "q": "domain of 1/(x^2-9)",
+   "kind": "ineq",
+   "expected": [
+    true,
+    true,
+    true,
+    true,
+    true,
+    true,
+    true,
+    true
+   ],
+   "src": ""
+  },
+  {
+   "cat": "Functions",
+   "q": "domain of sqrt(x+3)/(x-1)",
+   "kind": "ineq",
+   "expected": [
+    false,
+    true,
+    true,
+    true,
+    true,
+    true,
+    true,
+    true
+   ],
+   "src": ""
+  },
+  {
+   "cat": "Functions",
+   "q": "inverse of f(x)=3x-5",
+   "kind": "expr",
+   "expected": [
+    1.9000000000000001,
+    2.1,
+    2.3666666666666667
+   ],
+   "src": "",
+   "var": "x"
+  },
+  {
+   "cat": "Functions",
+   "q": "inverse of f(x)=(x+2)/(x-1)",
+   "kind": "expr",
+   "expected": [
+    -9.0,
+    10.999999999999998,
+    3.7272727272727266
+   ],
+   "src": "",
+   "var": "x"
+  },
+  {
+   "cat": "Functions",
+   "q": "inverse of f(x)=e^(2x)",
+   "kind": "expr",
+   "expected": [
+    -0.17833747196936622,
+    0.13118213223374553,
+    0.37096867236468867
+   ],
+   "src": "",
+   "var": "x"
+  },
+  {
+   "cat": "Functions",
+   "q": "inverse of f(x)=x^3+1",
+   "kind": "expr",
+   "expected": [
+    -0.6694329500821695,
+    0.6694329500821695,
+    1.0322801154563672
+   ],
+   "src": "",
+   "var": "x"
+  },
+  {
+   "cat": "Functions",
+   "q": "inverse of f(x)=ln(x-2)",
+   "kind": "expr",
+   "expected": [
+    4.013752707470476,
+    5.6692966676192444,
+    10.16616991256765
+   ],
+   "src": "",
+   "var": "x"
+  },
+  {
+   "cat": "Functions",
+   "q": "asymptotes of (2x+1)/(x-3)",
+   "kind": "asym",
+   "expected": {
+    "vert": [
+     3.0
+    ],
+    "other": [
+     2.0,
+     2.0,
+     2.0
+    ]
+   },
+   "src": ""
+  },
+  {
+   "cat": "Functions",
+   "q": "asymptotes of (x^2-1)/(x+2)",
+   "kind": "asym",
+   "expected": {
+    "vert": [
+     -2.0
+    ],
+    "other": [
+     -1.3,
+     -0.7,
+     0.10000000000000009
+    ]
+   },
+   "src": ""
+  },
+  {
+   "cat": "Functions",
+   "q": "asymptotes of 3x/(x^2+1)",
+   "kind": "asym",
+   "expected": {
+    "vert": [],
+    "other": [
+     0.0,
+     0.0,
+     0.0
+    ]
+   },
+   "src": ""
+  },
+  {
+   "cat": "Functions",
+   "q": "extrema of x^3-3x^2+2",
+   "kind": "extrema",
+   "expected": [
+    [
+     0,
+     2,
+     "max"
+    ],
+    [
+     2,
+     -2,
+     "min"
+    ]
+   ],
+   "src": ""
+  },
+  {
+   "cat": "Functions",
+   "q": "extrema of x^4-8x^2",
+   "kind": "extrema",
+   "expected": [
+    [
+     -2,
+     -16,
+     "min"
+    ],
+    [
+     0,
+     0,
+     "max"
+    ],
+    [
+     2,
+     -16,
+     "min"
+    ]
+   ],
+   "src": ""
+  },
+  {
+   "cat": "Functions",
+   "q": "extrema of x e^(-x)",
+   "kind": "extrema",
+   "expected": [
+    [
+     1,
+     0.36787944117144233,
+     "max"
+    ]
+   ],
+   "src": ""
+  },
+  {
+   "cat": "Functions",
+   "q": "extrema of x + 4/x",
+   "kind": "extrema",
+   "expected": [
+    [
+     -2,
+     -4,
+     "max"
+    ],
+    [
+     2,
+     4,
+     "min"
+    ]
+   ],
+   "src": ""
+  },
+  {
+   "cat": "Functions",
+   "q": "extrema of x^2 ln(x)",
+   "kind": "extrema",
+   "expected": [
+    [
+     0.6065306597126334,
+     -0.18393972058572117,
+     "min"
+    ]
+   ],
+   "src": ""
+  },
+  {
+   "cat": "Functions",
+   "q": "tangent line to x^3 at x=1",
+   "kind": "expr",
+   "expected": [
+    0.09999999999999964,
+    1.9000000000000004,
+    4.300000000000001
+   ],
+   "src": "",
+   "var": "x"
+  },
+  {
+   "cat": "Functions",
+   "q": "tangent line to ln(x) at x=1",
+   "kind": "expr",
+   "expected": [
+    -0.30000000000000004,
+    0.30000000000000004,
+    1.1
+   ],
+   "src": "",
+   "var": "x"
+  },
+  {
+   "cat": "Functions",
+   "q": "tangent line to sqrt(x) at x=4",
+   "kind": "expr",
+   "expected": [
+    1.175,
+    1.325,
+    1.525
+   ],
+   "src": "",
+   "var": "x"
+  },
+  {
+   "cat": "Functions",
+   "q": "tangent line to e^x at x=0",
+   "kind": "expr",
+   "expected": [
+    1.7,
+    2.3,
+    3.1
+   ],
+   "src": "",
+   "var": "x"
+  },
+  {
+   "cat": "Derivatives",
+   "q": "d/dx x^5 - 3x^2 + 7",
+   "kind": "expr",
+   "expected": [
+    -2.9994999999999994,
+    6.480500000000003,
+    84.64050000000003
+   ],
+   "src": "",
+   "var": "x"
+  },
+  {
+   "cat": "Derivatives",
+   "q": "d/dx (2x+1)^4",
+   "kind": "expr",
+   "expected": [
+    110.59199999999998,
+    373.24800000000005,
+    1124.864
+   ],
+   "src": "",
+   "var": "x"
+  },
+  {
+   "cat": "Derivatives",
+   "q": "d/dx x^2 sin(x)",
+   "kind": "expr",
+   "expected": [
+    1.2766774339021667,
+    2.9573243024602545,
+    1.3991080186398976
+   ],
+   "src": "",
+   "var": "x"
+  },
+  {
+   "cat": "Derivatives",
+   "q": "d/dx e^(3x) cos(x)",
+   "kind": "expr",
+   "expected": [
+    13.476702678330708,
+    -7.956842414544539,
+    -1294.8545961393086
+   ],
+   "src": "",
+   "var": "x"
+  },
+  {
+   "cat": "Derivatives",
+   "q": "d/dx ln(x^2+1)",
+   "kind": "expr",
+   "expected": [
+    0.9395973154362416,
+    0.9665427509293678,
+    0.7763401109057302
+   ],
+   "src": "",
+   "var": "x"
+  },
+  {
+   "cat": "Derivatives",
+   "q": "d/dx sqrt(1+x^2)",
+   "kind": "expr",
+   "expected": [
+    0.5734623443633283,
+    0.7926239891046001,
+    0.9028605188239303
+   ],
+   "src": "",
+   "var": "x"
+  },
+  {
+   "cat": "Derivatives",
+   "q": "d/dx (x^2+1)/(x-1)",
+   "kind": "expr",
+   "expected": [
+    -21.222222222222214,
+    -21.222222222222214,
+    -0.6528925619834709
+   ],
+   "src": "",
+   "var": "x"
+  },
+  {
+   "cat": "Derivatives",
+   "q": "d/dx sin(x)^3",
+   "kind": "expr",
+   "expected": [
+    0.9522662189132594,
+    0.7450733496185455,
+    -1.1285285557374545
+   ],
+   "src": "",
+   "var": "x"
+  },
+  {
+   "cat": "Derivatives",
+   "q": "d/dx tan(2x)",
+   "kind": "expr",
+   "expected": [
+    69.23091115652329,
+    2.7238369697621376,
+    8.321001853305416
+   ],
+   "src": "",
+   "var": "x"
+  },
+  {
+   "cat": "Derivatives",
+   "q": "d/dx x ln(x) - x",
+   "kind": "expr",
+   "expected": [
+    -0.35667494393873245,
+    0.26236426446749106,
+    0.7419373447293773
+   ],
+   "src": "",
+   "var": "x"
+  },
+  {
+   "cat": "Derivatives",
+   "q": "d/dx e^(x^2)",
+   "kind": "expr",
+   "expected": [
+    2.28524270793753,
+    14.090649833341137,
+    345.5317467176471
+   ],
+   "src": "",
+   "var": "x"
+  },
+  {
+   "cat": "Derivatives",
+   "q": "d/dx arctan(x^2)",
+   "kind": "expr",
+   "expected": [
+    1.128941214418192,
+    0.6742563730193719,
+    0.20539805654315066
+   ],
+   "src": "",
+   "var": "x"
+  },
+  {
+   "cat": "Derivatives",
+   "q": "d/dx 1/sqrt(x)",
+   "kind": "expr",
+   "expected": [
+    -0.8537347209531384,
+    -0.33733000742578045,
+    -0.16430132365294148
+   ],
+   "src": "",
+   "var": "x"
+  },
+  {
+   "cat": "Derivatives",
+   "q": "d/dx x^x",
+   "kind": "expr",
+   "expected": [
+    0.5011861886935786,
+    1.7754606438173388,
+    8.273571965954988
+   ],
+   "src": "",
+   "var": "x"
+  },
+  {
+   "cat": "Derivatives",
+   "q": "d/dx ln(sin(x))",
+   "kind": "expr",
+   "expected": [
+    1.1872418321266796,
+    0.27761564654112514,
+    -0.5848478064594647
+   ],
+   "src": "",
+   "var": "x"
+  },
+  {
+   "cat": "Derivatives",
+   "q": "d/dx cos(x)/(1+sin(x))",
+   "kind": "expr",
+   "expected": [
+    -0.6081919734606518,
+    -0.5092795351962194,
+    -0.5367083366474147
+   ],
+   "src": "",
+   "var": "x"
+  },
+  {
+   "cat": "Derivatives",
+   "q": "d/dx 2^x",
+   "kind": "expr",
+   "expected": [
+    1.1260209168747677,
+    1.7067285579443132,
+    2.971587015024007
+   ],
+   "src": "",
+   "var": "x"
+  },
+  {
+   "cat": "Derivatives",
+   "q": "d/dx arcsin(2x)",
+   "kind": "expr",
+   "expected": [
+    null,
+    null,
+    null
+   ],
+   "src": "",
+   "var": "x"
+  },
+  {
+   "cat": "Derivatives",
+   "q": "second derivative of x^4 - 2x^3",
+   "kind": "expr",
+   "expected": [
+    -2.52,
+    4.6800000000000015,
+    27.720000000000006
+   ],
+   "src": "",
+   "var": "x"
+  },
+  {
+   "cat": "Derivatives",
+   "q": "second derivative of x e^x",
+   "kind": "expr",
+   "expected": [
+    5.437132310170286,
+    12.108679003143505,
+    33.481296641527365
+   ],
+   "src": "",
+   "var": "x"
+  },
+  {
+   "cat": "Derivatives",
+   "q": "derivative of x^3 - 4x at x=2",
+   "kind": "num",
+   "expected": [
+    8.0
+   ],
+   "src": ""
+  },
+  {
+   "cat": "Derivatives",
+   "q": "derivative of sin(x)^2 at x=pi/4",
+   "kind": "num",
+   "expected": [
+    1.0
+   ],
+   "src": ""
+  },
+  {
+   "cat": "Integrals",
+   "q": "integrate 3x^2 - 4x + 1 dx",
+   "kind": "anti",
+   "expected": [
+    -0.33000000000000007,
+    0.8700000000000001,
+    5.83
+   ],
+   "src": ""
+  },
+  {
+   "cat": "Integrals",
+   "q": "integrate 1/x dx",
+   "kind": "anti",
+   "expected": [
+    1.4285714285714286,
+    0.7692307692307692,
+    0.47619047619047616
+   ],
+   "src": ""
+  },
+  {
+   "cat": "Integrals",
+   "q": "integrate e^(2x) dx",
+   "kind": "anti",
+   "expected": [
+    4.0551999668446745,
+    13.463738035001692,
+    66.68633104092515
+   ],
+   "src": ""
+  },
+  {
+   "cat": "Integrals",
+   "q": "integrate sin(3x) dx",
+   "kind": "anti",
+   "expected": [
+    0.8632093666488739,
+    -0.6877661591839741,
+    0.0168139004843506
+   ],
+   "src": ""
+  },
+  {
+   "cat": "Integrals",
+   "q": "integrate x e^x dx",
+   "kind": "anti",
+   "expected": [
+    1.4096268952293332,
+    4.770085667905018,
+    17.148956816392065
+   ],
+   "src": ""
+  },
+  {
+   "cat": "Integrals",
+   "q": "integrate x cos(x) dx",
+   "kind": "anti",
+   "expected": [
+    0.5353895310991419,
+    0.34774847721196356,
+    -1.060176819659701
+   ],
+   "src": ""
+  },
+  {
+   "cat": "Integrals",
+   "q": "integrate ln(x) dx",
+   "kind": "anti",
+   "expected": [
+    -0.35667494393873245,
+    0.26236426446749106,
+    0.7419373447293773
+   ],
+   "src": ""
+  },
+  {
+   "cat": "Integrals",
+   "q": "integrate x/(x^2+1) dx",
+   "kind": "anti",
+   "expected": [
+    0.4697986577181208,
+    0.4832713754646839,
+    0.3881700554528651
+   ],
+   "src": ""
+  },
+  {
+   "cat": "Integrals",
+   "q": "integrate 1/(x^2+4) dx",
+   "kind": "anti",
+   "expected": [
+    0.22271714922048996,
+    0.17574692442882248,
+    0.11890606420927467
+   ],
+   "src": ""
+  },
+  {
+   "cat": "Integrals",
+   "q": "integrate x sqrt(x^2+1) dx",
+   "kind": "anti",
+   "expected": [
+    0.8544588931013591,
+    2.1321585306913744,
+    4.884475406837463
+   ],
+   "src": ""
+  },
+  {
+   "cat": "Integrals",
+   "q": "integrate sin(x)^2 dx",
+   "kind": "anti",
+   "expected": [
+    0.41501642854987947,
+    0.9284443766844737,
+    0.7451304106703497
+   ],
+   "src": ""
+  },
+  {
+   "cat": "Integrals",
+   "q": "integrate cos(x)^3 dx",
+   "kind": "anti",
+   "expected": [
+    0.44742011431340206,
+    0.01914104541840551,
+    -0.1286699193540394
+   ],
+   "src": ""
+  },
+  {
+   "cat": "Integrals",
+   "q": "integrate 1/(x^2-1) dx",
+   "kind": "anti",
+   "expected": [
+    -1.9607843137254901,
+    1.4492753623188401,
+    0.29325513196480935
+   ],
+   "src": ""
+  },
+  {
+   "cat": "Integrals",
+   "q": "integrate (2x+3)/(x^2+3x+2) dx",
+   "kind": "anti",
+   "expected": [
+    0.9586056644880175,
+    0.7378129117259551,
+    0.5664830841856806
+   ],
+   "src": ""
+  },
+  {
+   "cat": "Integrals",
+   "q": "integrate x^2 e^x dx",
+   "kind": "anti",
+   "expected": [
+    0.9867388266605333,
+    6.201111368276524,
+    36.012809314423336
+   ],
+   "src": ""
+  },
+  {
+   "cat": "Integrals",
+   "q": "integrate tan(x) dx",
+   "kind": "anti",
+   "expected": [
+    0.8422883804630794,
+    3.6021024479679786,
+    -1.7098465429045073
+   ],
+   "src": ""
+  },
+  {
+   "cat": "Integrals",
+   "q": "integrate 1/sqrt(1-x^2) dx",
+   "kind": "anti",
+   "expected": [
+    1.4002800840280099,
+    null,
+    null
+   ],
+   "src": ""
+  },
+  {
+   "cat": "Integrals",
+   "q": "integrate e^x sin(x) dx",
+   "kind": "anti",
+   "expected": [
+    1.2972951118752687,
+    3.5355808388085523,
+    7.049114358174609
+   ],
+   "src": ""
+  },
+  {
+   "cat": "Integrals",
+   "q": "integrate sec(x)^2 dx",
+   "kind": "anti",
+   "expected": [
+    1.709449715863117,
+    13.975142045656908,
+    3.9235752002824946
+   ],
+   "src": ""
+  },
+  {
+   "cat": "Integrals",
+   "q": "integrate x^3 ln(x) dx",
+   "kind": "anti",
+   "expected": [
+    -0.1223395057709852,
+    0.5764142890350779,
+    6.871081749538765
+   ],
+   "src": ""
+  },
+  {
+   "cat": "Integrals",
+   "q": "integrate 1/(x(x+1)) dx",
+   "kind": "anti",
+   "expected": [
+    0.8403361344537815,
+    0.33444816053511706,
+    0.15360983102918585
+   ],
+   "src": ""
+  },
+  {
+   "cat": "Integrals",
+   "q": "integrate sqrt(x) dx",
+   "kind": "anti",
+   "expected": [
+    0.8366600265340756,
+    1.140175425099138,
+    1.449137674618944
+   ],
+   "src": ""
+  },
+  {
+   "cat": "Integrals",
+   "q": "integrate (x+1)^5 dx",
+   "kind": "anti",
+   "expected": [
+    14.198569999999998,
+    64.36342999999998,
+    286.29151
+   ],
+   "src": ""
+  },
+  {
+   "cat": "Integrals",
+   "q": "integrate x/(x+1) dx",
+   "kind": "anti",
+   "expected": [
+    0.4117647058823529,
+    0.5652173913043479,
+    0.6774193548387097
+   ],
+   "src": ""
+  },
+  {
+   "cat": "Definite integrals",
+   "q": "integrate from 0 to 1 of x^2",
+   "kind": "num",
+   "expected": [
+    0.3333333333333333
+   ],
+   "src": ""
+  },
+  {
+   "cat": "Definite integrals",
+   "q": "integrate from 0 to pi of sin(x)",
+   "kind": "num",
+   "expected": [
+    2.0
+   ],
+   "src": ""
+  },
+  {
+   "cat": "Definite integrals",
+   "q": "integrate from 1 to e of ln(x)",
+   "kind": "num",
+   "expected": [
+    1.0
+   ],
+   "src": ""
+  },
+  {
+   "cat": "Definite integrals",
+   "q": "integrate from 0 to 2 of (3x^2+1)",
+   "kind": "num",
+   "expected": [
+    10.0
+   ],
+   "src": ""
+  },
+  {
+   "cat": "Definite integrals",
+   "q": "integrate from 0 to 1 of x e^x",
+   "kind": "num",
+   "expected": [
+    1.0
+   ],
+   "src": ""
+  },
+  {
+   "cat": "Definite integrals",
+   "q": "integrate from 1 to 4 of 1/sqrt(x)",
+   "kind": "num",
+   "expected": [
+    2.0
+   ],
+   "src": ""
+  },
+  {
+   "cat": "Definite integrals",
+   "q": "integrate from 0 to pi/2 of cos(x)^2",
+   "kind": "num",
+   "expected": [
+    0.7853981633974483
+   ],
+   "src": ""
+  },
+  {
+   "cat": "Definite integrals",
+   "q": "integrate from -1 to 1 of |x|",
+   "kind": "num",
+   "expected": [
+    1.0
+   ],
+   "src": ""
+  },
+  {
+   "cat": "Definite integrals",
+   "q": "integrate from 0 to 1 of 1/(1+x^2)",
+   "kind": "num",
+   "expected": [
+    0.7853981633974483
+   ],
+   "src": ""
+  },
+  {
+   "cat": "Definite integrals",
+   "q": "integrate from 0 to ln(2) of e^x",
+   "kind": "num",
+   "expected": [
+    1.0
+   ],
+   "src": ""
+  },
+  {
+   "cat": "Definite integrals",
+   "q": "integrate from 1 to 2 of 1/x^2",
+   "kind": "num",
+   "expected": [
+    0.5
+   ],
+   "src": ""
+  },
+  {
+   "cat": "Limits",
+   "q": "lim x->2 (x^2-4)/(x-2)",
+   "kind": "num",
+   "expected": [
+    4.0
+   ],
+   "src": ""
+  },
+  {
+   "cat": "Limits",
+   "q": "lim x->0 sin(3x)/x",
+   "kind": "num",
+   "expected": [
+    3.0
+   ],
+   "src": ""
+  },
+  {
+   "cat": "Limits",
+   "q": "lim x->oo (3x^2+1)/(2x^2-5)",
+   "kind": "num",
+   "expected": [
+    1.5
+   ],
+   "src": ""
+  },
+  {
+   "cat": "Limits",
+   "q": "lim x->0 (1-cos(x))/x^2",
+   "kind": "num",
+   "expected": [
+    0.5
+   ],
+   "src": ""
+  },
+  {
+   "cat": "Limits",
+   "q": "lim x->0 (e^x-1)/x",
+   "kind": "num",
+   "expected": [
+    1.0
+   ],
+   "src": ""
+  },
+  {
+   "cat": "Limits",
+   "q": "lim x->oo (1+2/x)^x",
+   "kind": "num",
+   "expected": [
+    7.38905609893065
+   ],
+   "src": ""
+  },
+  {
+   "cat": "Limits",
+   "q": "lim x->0 x ln(x)",
+   "kind": "num",
+   "expected": [
+    0.0
+   ],
+   "src": ""
+  },
+  {
+   "cat": "Limits",
+   "q": "lim x->oo x/e^x",
+   "kind": "num",
+   "expected": [
+    0.0
+   ],
+   "src": ""
+  },
+  {
+   "cat": "Limits",
+   "q": "lim x->1 (x^3-1)/(x-1)",
+   "kind": "num",
+   "expected": [
+    3.0
+   ],
+   "src": ""
+  },
+  {
+   "cat": "Limits",
+   "q": "lim x->0 tan(x)/x",
+   "kind": "num",
+   "expected": [
+    1.0
+   ],
+   "src": ""
+  },
+  {
+   "cat": "Limits",
+   "q": "lim x->oo (sqrt(x^2+x) - x)",
+   "kind": "num",
+   "expected": [
+    0.5
+   ],
+   "src": ""
+  },
+  {
+   "cat": "Limits",
+   "q": "lim x->0 (sqrt(1+x)-1)/x",
+   "kind": "num",
+   "expected": [
+    0.5
+   ],
+   "src": ""
+  },
+  {
+   "cat": "Limits",
+   "q": "lim x->3 (x^2-9)/(x^2-5x+6)",
+   "kind": "num",
+   "expected": [
+    6.0
+   ],
+   "src": ""
+  },
+  {
+   "cat": "Limits",
+   "q": "lim x->oo ln(x)/x",
+   "kind": "num",
+   "expected": [
+    0.0
+   ],
+   "src": ""
+  },
+  {
+   "cat": "Sequences",
+   "q": "5, 8, 11, 14, ... nth term",
+   "kind": "expr",
+   "expected": [
+    5,
+    8,
+    11
+   ],
+   "src": "",
+   "var": "n",
+   "npts": [
+    1,
+    2,
+    3
+   ]
+  },
+  {
+   "cat": "Sequences",
+   "q": "geometric sequence 2, 6, 18, ...",
+   "kind": "expr",
+   "expected": [
+    2,
+    6,
+    18
+   ],
+   "src": "",
+   "var": "n",
+   "npts": [
+    1,
+    2,
+    3
+   ]
+  },
+  {
+   "cat": "Sequences",
+   "q": "2, 5, 10, 17, ...",
+   "kind": "expr",
+   "expected": [
+    2,
+    5,
+    10
+   ],
+   "src": "",
+   "var": "n",
+   "npts": [
+    1,
+    2,
+    3
+   ]
+  },
+  {
+   "cat": "Series",
+   "q": "sum n=1 to 20 of (3n-1)",
+   "kind": "num",
+   "expected": [
+    610.0
+   ],
+   "src": ""
+  },
+  {
+   "cat": "Series",
+   "q": "sum k=1 to 10 of k^2",
+   "kind": "num",
+   "expected": [
+    385.0
+   ],
+   "src": ""
+  },
+  {
+   "cat": "Series",
+   "q": "sum n=0 to oo of (2/3)^n",
+   "kind": "num",
+   "expected": [
+    3.0
+   ],
+   "src": ""
+  },
+  {
+   "cat": "Series",
+   "q": "sum n=1 to oo of 1/(n(n+1))",
+   "kind": "num",
+   "expected": [
+    1.0
+   ],
+   "src": ""
+  },
+  {
+   "cat": "Series",
+   "q": "3 + 6 + 12 + ... + 384",
+   "kind": "num",
+   "expected": [
+    765.0
+   ],
+   "src": ""
+  },
+  {
+   "cat": "Series",
+   "q": "1 + 1/2 + 1/4 + ...",
+   "kind": "num",
+   "expected": [
+    2.0
+   ],
+   "src": ""
+  },
+  {
+   "cat": "Series",
+   "q": "7 + 11 + 15 + ... + 99",
+   "kind": "num",
+   "expected": [
+    1272.0
+   ],
+   "src": ""
+  },
+  {
+   "cat": "Combinatorics",
+   "q": "nCr(10, 3)",
+   "kind": "num",
+   "expected": [
+    120.0
+   ],
+   "src": ""
+  },
+  {
+   "cat": "Combinatorics",
+   "q": "nPr(8, 3)",
+   "kind": "num",
+   "expected": [
+    336.0
+   ],
+   "src": ""
+  },
+  {
+   "cat": "Combinatorics",
+   "q": "7!/(3! 4!)",
+   "kind": "num",
+   "expected": [
+    35.0
+   ],
+   "src": ""
+  },
+  {
+   "cat": "Combinatorics",
+   "q": "nCr(6,2) * nCr(4,2)",
+   "kind": "num",
+   "expected": [
+    90.0
+   ],
+   "src": ""
+  },
+  {
+   "cat": "Complex numbers",
+   "q": "(2+3i)(1-i)",
+   "kind": "complex",
+   "expected": [
+    [
+     5.0,
+     1.0
+    ]
+   ],
+   "src": ""
+  },
+  {
+   "cat": "Complex numbers",
+   "q": "(3+4i)/(1+2i)",
+   "kind": "complex",
+   "expected": [
+    [
+     2.2,
+     -0.4
+    ]
+   ],
+   "src": ""
+  },
+  {
+   "cat": "Complex numbers",
+   "q": "i^7",
+   "kind": "complex",
+   "expected": [
+    [
+     0.0,
+     -1.0
+    ]
+   ],
+   "src": ""
+  },
+  {
+   "cat": "Complex numbers",
+   "q": "x^2 + 2x + 5 = 0",
+   "kind": "complex",
+   "expected": [
+    [
+     -1.0,
+     -2.0
+    ],
+    [
+     -1.0,
+     2.0
+    ]
+   ],
+   "src": ""
+  },
+  {
+   "cat": "Complex numbers",
+   "q": "|5-12i|",
+   "kind": "num",
+   "expected": [
+    13.0
+   ],
+   "src": ""
+  },
+  {
+   "cat": "Matrices",
+   "q": "det [[2,1],[5,3]]",
+   "kind": "num",
+   "expected": [
+    1.0
+   ],
+   "src": ""
+  },
+  {
+   "cat": "Matrices",
+   "q": "det [[1,2,3],[0,1,4],[5,6,0]]",
+   "kind": "num",
+   "expected": [
+    1.0
+   ],
+   "src": ""
+  },
+  {
+   "cat": "Matrices",
+   "q": "inverse [[4,7],[2,6]]",
+   "kind": "matrix",
+   "expected": [
+    0.6,
+    -0.7,
+    -0.2,
+    0.4
+   ],
+   "src": ""
+  },
+  {
+   "cat": "Matrices",
+   "q": "[[1,2],[3,4]] * [[2,0],[1,2]]",
+   "kind": "matrix",
+   "expected": [
+    4.0,
+    4.0,
+    10.0,
+    8.0
+   ],
+   "src": ""
+  },
+  {
+   "cat": "Matrices",
+   "q": "eigenvalues [[4,1],[2,3]]",
+   "kind": "set",
+   "expected": [
+    2.0,
+    5.0
+   ],
+   "src": ""
+  },
+  {
+   "cat": "Matrices",
+   "q": "eigenvalues [[2,0,0],[0,3,4],[0,4,9]]",
+   "kind": "set",
+   "expected": [
+    1.0,
+    2.0,
+    11.0
+   ],
+   "src": ""
+  },
+  {
+   "cat": "Differential equations",
+   "q": "y' = 3y",
+   "kind": "ode",
+   "expected": {
+    "rhs": "3*y"
+   },
+   "src": ""
+  },
+  {
+   "cat": "Differential equations",
+   "q": "y' = 2x y",
+   "kind": "ode",
+   "expected": {
+    "rhs": "2*x*y"
+   },
+   "src": ""
+  },
+  {
+   "cat": "Differential equations",
+   "q": "y' = x^2 + 1",
+   "kind": "ode",
+   "expected": {
+    "rhs": "x^2 + 1"
+   },
+   "src": ""
+  },
+  {
+   "cat": "Differential equations",
+   "q": "y' + 2y = 4",
+   "kind": "ode",
+   "expected": {
+    "rhs": "4 - 2*y"
+   },
+   "src": ""
+  },
+  {
+   "cat": "Differential equations",
+   "q": "y' = y + e^x",
+   "kind": "ode",
+   "expected": {
+    "rhs": "y + e^x"
+   },
+   "src": ""
+  },
+  {
+   "cat": "Partial fractions",
+   "q": "partial fractions 3/((x-1)(x+2))",
+   "kind": "expr",
+   "expected": [
+    -3.7037037037037033,
+    3.0303030303030303,
+    0.6651884700665188
+   ],
+   "src": "",
+   "var": "x"
+  },
+  {
+   "cat": "Partial fractions",
+   "q": "partial fractions (5x-4)/(x^2-x-2)",
+   "kind": "expr",
+   "expected": [
+    0.22624434389140272,
+    -1.5527950310559007,
+    20.96774193548387
+   ],
+   "src": "",
+   "var": "x"
+  },
+  {
+   "cat": "Partial fractions",
+   "q": "partial fractions (x+3)/(x^2(x+1))",
+   "kind": "expr",
+   "expected": [
+    4.441776710684274,
+    1.1062516079238485,
+    0.3730524467851656
+   ],
+   "src": "",
+   "var": "x"
+  },
+  {
+   "cat": "Partial fractions",
+   "q": "partial fractions (x^2+2)/(x(x^2+1))",
+   "kind": "expr",
+   "expected": [
+    2.3873441994247364,
+    1.0551901629968543,
+    0.5642108969280873
+   ],
+   "src": "",
+   "var": "x"
+  },
+  {
+   "cat": "Statistics",
+   "q": "mean of 4, 8, 15, 16, 23, 42",
+   "kind": "num",
+   "expected": [
+    18.0
+   ],
+   "src": ""
+  },
+  {
+   "cat": "Statistics",
+   "q": "median of 3, 9, 1, 7, 5, 11",
+   "kind": "num",
+   "expected": [
+    6.0
+   ],
+   "src": ""
+  },
+  {
+   "cat": "Statistics",
+   "q": "variance of 2, 4, 4, 4, 5, 5, 7, 9",
+   "kind": "num",
+   "expected": [
+    4.0
+   ],
+   "src": ""
+  },
+  {
+   "cat": "Word problems",
+   "q": "A rectangle has perimeter 30 and length 9. Find its width.",
+   "kind": "num",
+   "expected": [
+    6.0
+   ],
+   "src": "word"
+  },
+  {
+   "cat": "Word problems",
+   "q": "The sum of two consecutive integers is 41. Find the smaller one.",
+   "kind": "num",
+   "expected": [
+    20.0
+   ],
+   "src": "word"
+  },
+  {
+   "cat": "Word problems",
+   "q": "A car travels 150 km in 2.5 hours. What is its average speed?",
+   "kind": "num",
+   "expected": [
+    60.0
+   ],
+   "src": "word"
+  },
+  {
+   "cat": "Word problems",
+   "q": "Find the area of a circle with radius 3",
+   "kind": "num",
+   "expected": [
+    28.274333882308138
+   ],
+   "src": "word"
+  },
+  {
+   "cat": "Word problems",
+   "q": "A price of 80 is increased by 15%. What is the new price?",
+   "kind": "num",
+   "expected": [
+    92.0
+   ],
+   "src": "word"
+  },
+  {
+   "cat": "Word problems",
+   "q": "How many ways can 5 people sit in a row?",
+   "kind": "num",
+   "expected": [
+    120.0
+   ],
+   "src": "word"
+  },
+  {
+   "cat": "Word problems",
+   "q": "What is the probability of rolling a sum of 7 with two dice?",
+   "kind": "num",
+   "expected": [
+    0.16666666666666666
+   ],
+   "src": "word"
+  },
+  {
+   "cat": "Word problems",
+   "q": "Find the hypotenuse of a right triangle with legs 5 and 12",
+   "kind": "num",
+   "expected": [
+    13.0
+   ],
+   "src": "word"
+  }
+ ]
+}

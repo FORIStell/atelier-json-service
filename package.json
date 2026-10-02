@@ -6,6 +6,6 @@
   "description": "Step-by-step math solver web app with handwriting recognition",
   "scripts": {
     "test": "node --test tests/*.test.mjs",
-    "start": "python3 -m http.server 8000 --directory web"
+    "start": "python3 run.py"
   }
 }

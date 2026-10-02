@@ -21,6 +21,15 @@
 </head>
 <body>
 <div id="app">
+  <!-- Shown only when the file is opened by double-clicking (file://), where browsers block the app's code -->
+  <script>
+    if (location.protocol === 'file:') document.addEventListener('DOMContentLoaded', function () {
+      var d = document.createElement('div');
+      d.style.cssText = 'position:fixed;inset:0;z-index:99;background:#111;color:#fff;display:flex;flex-direction:column;justify-content:center;padding:28px;font:17px/1.5 system-ui,sans-serif';
+      d.innerHTML = '<h2 style="margin:0 0 10px">Open MathBot with run.py</h2><p>Browsers block the app when index.html is opened by double-clicking, so the buttons can\'t work.</p><p>In the project folder run <b>python run.py</b> (or double-click <b>run.py</b>). To use it on your phone too, run <b>python host_wifi.py</b>.</p>';
+      document.body.appendChild(d);
+    });
+  </script>
 
   <!-- ============ CAMERA HOME ============ -->
   <section id="home" class="home">
@@ -46,8 +55,34 @@
       <span class="cross"></span>
     </div>
     <p id="camMsg" class="cam-msg" hidden></p>
+    <!-- circle the problem on a pasted screenshot / shared screen / photo -->
+    <canvas id="lasso" class="lasso" hidden></canvas>
+
+    <!-- PC start panel: screen share, paste, drop, webcam -->
+    <div id="deskStart" class="desk-start" hidden>
+      <h2>Solve anything on your screen</h2>
+      <p>Share your screen or paste a screenshot, then <b>circle the problem</b> with the mouse.</p>
+      <div class="desk-actions">
+        <button class="btn primary" id="shareBtn">
+          <svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="12" rx="2"/><path d="M8 20h8M12 16v4"/></svg>Share screen
+        </button>
+        <button class="btn" id="pasteBtn">
+          <svg viewBox="0 0 24 24"><rect x="6" y="4" width="12" height="17" rx="2"/><path d="M9 4V3h6v1"/></svg>Paste screenshot
+        </button>
+        <label class="btn">
+          <input id="fileInput2" type="file" accept="image/*" hidden>
+          <svg viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="14" rx="2.5"/><circle cx="9" cy="10" r="1.6"/><path d="M4 17l5-4.5 3.5 3 3-2.5L20 17"/></svg>Open image
+        </label>
+        <button class="btn" id="webcamBtn">
+          <svg viewBox="0 0 24 24"><circle cx="12" cy="11" r="6"/><circle cx="12" cy="11" r="2"/><path d="M8 21h8"/></svg>Use webcam
+        </button>
+      </div>
+      <p class="desk-tip"><kbd>Ctrl</kbd> + <kbd>V</kbd> pastes a screenshot · you can also drop an image here<br><kbd>Win</kbd> + <kbd>Shift</kbd> + <kbd>S</kbd> (Windows) or <kbd>⌘</kbd> + <kbd>Shift</kbd> + <kbd>4</kbd> (Mac) takes one</p>
+    </div>
+    <div id="dropHint" class="drop-hint" hidden>Drop the image</div>
 
     <div class="home-bottom">
+      <div class="mode-switch" role="tablist"><button data-mode="math" class="on">Math</button><button data-mode="text">Word problem</button></div>
       <p class="home-hint" id="homeHint">Take a picture of a math problem</p>
       <div class="shutter-row">
         <button class="side-btn" id="openCalc">
@@ -65,6 +100,18 @@
           <input id="fileInput" type="file" accept="image/*" hidden>
           <svg viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="14" rx="2.5"/><circle cx="9" cy="10" r="1.6"/><path d="M4 17l5-4.5 3.5 3 3-2.5L20 17"/></svg>
         </label>
+        <button class="tool-btn" id="openWords" aria-label="Type a word problem">
+          <svg viewBox="0 0 24 24"><path d="M4 18L9 6l5 12M5.7 14h6.6"/><path d="M15 12.5c.6-1 1.6-1.5 2.7-1.5 1.6 0 2.3 1 2.3 2.4V18"/><path d="M20 15.2c-1-.6-5-.9-5 1.3 0 1.9 3.7 2 5 0"/></svg>
+        </button>
+        <button class="tool-btn" id="openAI" aria-label="AI tutor">
+          <svg viewBox="0 0 24 24"><path d="M12 3l1.8 5.2L19 10l-5.2 1.8L12 17l-1.8-5.2L5 10l5.2-1.8z"/><path d="M18.5 15.5l.7 1.8 1.8.7-1.8.7-.7 1.8-.7-1.8-1.8-.7 1.8-.7z"/></svg>
+        </button>
+        <button class="tool-btn" id="openPractice" aria-label="Practice">
+          <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="8.5"/><circle cx="12" cy="12" r="4.5"/><circle cx="12" cy="12" r="1" fill="currentColor"/></svg>
+        </button>
+        <button class="tool-btn" id="shareBtn2" aria-label="Share screen" hidden>
+          <svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="12" rx="2"/><path d="M8 20h8M12 16v4"/></svg>
+        </button>
         <button class="tool-btn" id="torchBtn" aria-label="Flash" hidden>
           <svg viewBox="0 0 24 24"><path d="M13 3L6 13.5h5L10 21l8-11h-5z"/></svg>
         </button>
@@ -81,6 +128,7 @@
       <math-field id="mf" placeholder="\text{Type a math problem…}"></math-field>
       <div id="livePreview" class="live-preview"></div>
       <div id="calcError" class="calc-error" hidden></div>
+      <button id="calcAI" class="btn ai-inline" hidden><svg viewBox="0 0 24 24"><path d="M12 3l1.8 5.2L19 10l-5.2 1.8L12 17l-1.8-5.2L5 10l5.2-1.8z"/><path d="M18.5 15.5l.7 1.8 1.8.7-1.8.7-.7 1.8-.7-1.8-1.8-.7 1.8-.7z"/></svg><span>Ask the AI to solve it</span></button>
     </div>
     <div class="kbd" id="kbd">
       <div class="kbd-tools">
@@ -114,11 +162,19 @@
         <div class="result-kind" id="resultKind"></div>
         <div class="problem" id="resultProblem"></div>
         <div id="photoNote" class="photo-note" hidden></div>
+        <div id="altReads" class="alt-reads" hidden>
+          <div class="alt-label">Did you mean…?</div>
+          <div id="altList" class="alt-list"></div>
+        </div>
       </div>
       <div class="answer-card">
         <div class="answer-label">Answer</div>
         <div class="answer" id="resultAnswer"></div>
         <button id="copyBtn" class="chip-btn">Copy</button>
+      </div>
+      <div class="result-actions">
+        <button id="similarBtn" class="btn">Try a similar problem</button>
+        <button id="aiBtn" class="btn ai-btn"><svg viewBox="0 0 24 24"><path d="M12 3l1.8 5.2L19 10l-5.2 1.8L12 17l-1.8-5.2L5 10l5.2-1.8z"/><path d="M18.5 15.5l.7 1.8 1.8.7-1.8.7-.7 1.8-.7-1.8-1.8-.7 1.8-.7z"/></svg><span>Ask the AI tutor</span></button>
       </div>
       <h2 class="sec-title">How to solve it</h2>
       <ol id="steps" class="steps"></ol>
@@ -143,6 +199,69 @@
     </div>
   </section>
 
+  <!-- ============ WORD PROBLEM SHEET ============ -->
+  <section id="words" class="sheet" hidden>
+    <header class="sheet-head">
+      <span></span><h1>Word problem</h1><button class="link" data-close>Close</button>
+    </header>
+    <p class="sheet-hint">Type or paste a problem in Lithuanian or English · Žodinį uždavinį galite rašyti lietuviškai.</p>
+    <div class="words-wrap"><textarea id="wordsText" rows="7" placeholder="Pvz.: Kostiumo kaina 120 €. Ji sumažinta 15 %. Kokia nauja kaina?"></textarea></div>
+    <div id="wordsError" class="calc-error words-error" hidden></div>
+    <button id="wordsAI" class="btn ai-inline words-ai" hidden><svg viewBox="0 0 24 24"><path d="M12 3l1.8 5.2L19 10l-5.2 1.8L12 17l-1.8-5.2L5 10l5.2-1.8z"/><path d="M18.5 15.5l.7 1.8 1.8.7-1.8.7-.7 1.8-.7-1.8-1.8-.7 1.8-.7z"/></svg><span>Ask the AI to solve it</span></button>
+    <div class="pad-actions">
+      <button id="wordsClear" class="btn">Clear</button>
+      <label class="btn" id="wordsPhoto"><input id="wordsFile" type="file" accept="image/*" hidden>From photo</label>
+      <button id="wordsSolve" class="btn primary">Solve</button>
+    </div>
+  </section>
+
+  <!-- ============ AI TUTOR SHEET ============ -->
+  <section id="ai" class="sheet" hidden>
+    <header class="sheet-head">
+      <button class="link" id="aiNew">New</button><h1>AI tutor</h1><button class="link" data-close>Close</button>
+    </header>
+    <div class="ai-body" id="aiBody">
+      <div id="aiSetup" class="ai-setup" hidden>
+        <h2>Turn on the AI tutor</h2>
+        <p>The tutor is Claude, an AI by Anthropic. It explains solutions, answers your questions and solves problems the app can't, also from photos with figures.</p>
+        <p>It needs your own API key from <a href="https://console.anthropic.com/settings/keys" target="_blank" rel="noopener">console.anthropic.com</a>. The key stays only on this device and is sent only to Anthropic. Each question costs a few cents.</p>
+        <input id="aiKey" class="pr-input" type="password" placeholder="sk-ant-…" autocomplete="off" spellcheck="false">
+        <div id="aiKeyError" class="calc-error" hidden></div>
+        <div class="pr-actions"><button id="aiKeyRemove" class="btn">Remove key</button><button id="aiKeySave" class="btn primary">Save</button></div>
+      </div>
+      <div id="aiLog" class="ai-log"></div>
+      <div id="aiChips" class="ai-chips"></div>
+    </div>
+    <div class="ai-bar">
+      <label class="ai-attach" aria-label="Add a photo"><input id="aiFile" type="file" accept="image/*" hidden><svg viewBox="0 0 24 24"><rect x="3" y="6" width="18" height="13" rx="2.5"/><circle cx="12" cy="12.5" r="3.5"/><path d="M8.5 6l1.5-2h4l1.5 2"/></svg></label>
+      <img id="aiThumb" class="ai-thumb" alt="" hidden>
+      <textarea id="aiText" rows="1" enterkeyhint="send"></textarea>
+      <button id="aiSend" class="ai-send" aria-label="Send"><svg viewBox="0 0 24 24"><path d="M5 12h13M13 6l6 6-6 6"/></svg></button>
+    </div>
+  </section>
+
+  <!-- ============ PRACTICE SHEET ============ -->
+  <section id="practice" class="sheet" hidden>
+    <header class="sheet-head">
+      <span></span><h1>Practice</h1><button class="link" data-close>Close</button>
+    </header>
+    <div class="pr-topics" id="prTopics"></div>
+    <div class="pr-body">
+      <div class="problem-card">
+        <div class="result-kind" id="prKind"></div>
+        <div class="problem" id="prProblem"></div>
+      </div>
+      <input id="prAnswer" class="pr-input" autocomplete="off" autocapitalize="off" spellcheck="false" enterkeyhint="done">
+      <div id="prFeedback" class="pr-feedback" hidden></div>
+      <div class="pr-actions">
+        <button id="prShow" class="btn">Show solution</button>
+        <button id="prCheck" class="btn primary">Check</button>
+      </div>
+      <button id="prNext" class="btn pr-next">Next problem</button>
+      <p class="pr-score" id="prScore"></p>
+    </div>
+  </section>
+
   <!-- ============ HISTORY SHEET ============ -->
   <section id="history" class="sheet" hidden>
     <header class="sheet-head">
@@ -157,8 +276,13 @@
       <div class="menu-brand"><img src="icons/icon-192.png" alt="" width="36" height="36"><b>MathBot</b></div>
       <button data-menu="calc">Calculator</button>
       <button data-menu="write">Write by hand</button>
+      <button data-menu="words">Word problem</button>
+      <button data-menu="practice">Practice</button>
+      <button data-menu="ai">AI tutor</button>
       <button data-menu="history">History</button>
       <button data-menu="angle">Angles: <b id="angleLabel">Radians</b></button>
+      <button data-menu="accurate">Accurate reader: <b id="accurateLabel">Off</b></button>
+      <button data-menu="lang">Language: <b id="langLabel">English</b></button>
       <button data-menu="help">Tips</button>
     </div>
     <div class="menu-scrim" data-menu="close"></div>
@@ -170,6 +294,8 @@
       <h2>Tips</h2>
       <ul>
         <li>Fit <b>one</b> problem inside the frame. Drag the corners to resize it.</li>
+        <li>On a picture, screenshot or shared screen: <b>circle the problem</b> you want solved.</li>
+        <li>On a computer: press <b>Ctrl+V</b> to paste a screenshot, or share your screen.</li>
         <li>Use dark ink on light paper and good light. Hold the phone flat above the page.</li>
         <li>Check what was read: tap <b>Edit</b> on the solution to fix any symbol.</li>
         <li>The calculator has templates for fractions, powers, roots, logs, limits, derivatives, integrals and sums. Hold a key with a red dot for more options.</li>

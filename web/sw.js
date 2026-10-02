@@ -1,5 +1,5 @@
 // Offline support: cache the app shell, the engine, the model and KaTeX.
-const VERSION = 'mathbot-v6';
+const VERSION = 'mathbot-v7';
 const CORE = [
   './', 'index.html', 'style.css', 'app.js', 'manifest.webmanifest',
   'icons/icon-192.png', 'icons/icon-512.png', 'icons/apple-touch-icon.png',
@@ -14,14 +14,14 @@ self.addEventListener('install', (e) => {
   e.waitUntil(caches.open(VERSION).then((c) => c.addAll(CORE)).then(() => self.skipWaiting()));
 });
 self.addEventListener('activate', (e) => {
-  e.waitUntil(caches.keys().then((keys) => Promise.all(keys.filter((k) => k !== VERSION && k !== 'mathbot-big-v1').map((k) => caches.delete(k)))).then(() => self.clients.claim()));
+  e.waitUntil(caches.keys().then((keys) => Promise.all(keys.filter((k) => k !== VERSION && k !== 'mathbot-big-v2').map((k) => caches.delete(k)))).then(() => self.clients.claim()));
 });
 // big files that never change (reader weights, runtimes): cache first, so they download only once
 const BIG = /\/(model\/mfr|vendor)\//;
 self.addEventListener('fetch', (e) => {
   if (e.request.method !== 'GET' || new URL(e.request.url).origin !== location.origin) return;
   if (BIG.test(new URL(e.request.url).pathname)) {
-    e.respondWith(caches.open('mathbot-big-v1').then((c) => c.match(e.request).then((hit) => hit || fetch(e.request).then((res) => { if (res.ok) c.put(e.request, res.clone()); return res; }))));
+    e.respondWith(caches.open('mathbot-big-v2').then((c) => c.match(e.request).then((hit) => hit || fetch(e.request).then((res) => { if (res.ok) c.put(e.request, res.clone()); return res; }))));
     return;
   }
   // everything else: network first (so updates show up), fall back to the cache when offline

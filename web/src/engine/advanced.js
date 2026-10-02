@@ -771,6 +771,35 @@ function seriesSum(terms, last, res, hint) {
   return res('series', 'Geometric series', head, steps, qt(s), s.toString());
 }
 
+// ---------------- ∫ sin^m(bx) cos^n(bx) dx with an odd power: substitute u = sin or u = cos ----------------
+export function trigPowerIntegral(f, v, steps) {
+  const fs = f.t === 'mul' ? f.a : [f];
+  let c = Q.of(1), m = 0, n = 0, b = null;
+  for (const x of fs) {
+    if (x.t === 'num' && isQ(x.v)) { c = c.mul(x.v); continue; }
+    const [base, e] = x.t === 'pow' && x.e.t === 'num' && isQ(x.e.v) && x.e.v.isInt() && x.e.v.sign() > 0 ? [x.b, Number(x.e.v.n)] : [x, 1];
+    if (base.t !== 'fn' || (base.n !== 'sin' && base.n !== 'cos')) return null;
+    const co = polyCoeffs(base.a[0], v);
+    if (!co || co.length !== 2 || !(co[0].t === 'num' && co[0].v.isZero()) || co[1].t !== 'num') return null;
+    if (b && !b.eq(co[1].v)) return null;
+    b = co[1].v;
+    if (base.n === 'sin') m += e; else n += e;
+  }
+  if (!b || (m % 2 === 0 && n % 2 === 0)) return null;
+  const U = sym('u'), X = sym(v), arg = S(mul(num(b), X));
+  const useSin = n % 2 === 1; // odd power of cos: u = sin, du = b cos dx
+  const k = useSin ? (n - 1) / 2 : (m - 1) / 2;
+  const poly = useSin ? mul(pow(U, num(m)), pow(sub(ONE, pow(U, num(2))), num(k))) : mul(num(-1), pow(U, num(n)), pow(sub(ONE, pow(U, num(2))), num(k)));
+  const P2 = S(expand(poly));
+  const Fu = integrate(P2, 'u', []);
+  if (!Fu) return null;
+  const back = S(mul(num(c.div(b)), subst(S(Fu), 'u', fn(useSin ? 'sin' : 'cos', arg))));
+  steps.push({ title: `Odd power of ${useSin ? 'cos' : 'sin'}: keep one factor and write the rest with $\\sin^2 + \\cos^2 = 1$`, math: `u = \\${useSin ? 'sin' : 'cos'}\\left(${tex(arg)}\\right),\\quad du = ${useSin ? '' : '-'}${tex(num(b))}\\${useSin ? 'cos' : 'sin'}\\left(${tex(arg)}\\right)dx` });
+  steps.push({ title: 'The integral becomes a polynomial in $u$', math: `\\int ${tex(P2)}\\,du = ${tex(S(Fu))}` });
+  steps.push({ title: 'Put $u$ back', math: tex(back) });
+  return back;
+}
+
 // ---------------- ∫ e^(ax) sin(bx) dx, ∫ e^(ax) cos(bx) dx (integration by parts twice) ----------------
 export function expTrigIntegral(f, v, steps) {
   const fs = f.t === 'mul' ? f.a : [f];

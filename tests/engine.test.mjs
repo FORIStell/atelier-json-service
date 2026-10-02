@@ -113,6 +113,15 @@ const cases = [
   ['geometric series 2+4+8+...+256', '510'],
   ['1, 4, 9, 16, ...', 'a_n = n^2'],
   ['integrate e^x sin(x) dx', '-(e^x*cos(x))/2 + (e^x*sin(x))/2 + C'],
+  ['integrate cos(x)^3 dx', '-sin(x)^3/3 + sin(x) + C'],
+  ['lim x->oo (1+2/x)^x', 'e^2'],
+  ['lim x->0 x ln(x)', '0'],
+  ['lim x->oo ln(x)/x', '0'],
+  ['lim x->0 sin(x)/x', '1'],
+  ['sum n=1 to oo of 1/(n(n+1))', '1'],
+  ['sin(2x) = sin(x)', 'x = 2*π*k, x = 2*π*k + π, x = 2*π*k + π/3, x = 2*π*k - π/3 (k any integer)'],
+  ['sin(x) = cos(x)', 'x = π*k + π/4 (k any integer)'],
+  ['4 arccos(x+2) = 3pi', 'x = (-4 - sqrt(2))/2'],
 ];
 for (const [q, want] of cases) {
   test(q, () => {

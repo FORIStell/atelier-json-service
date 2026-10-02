@@ -117,7 +117,9 @@ export function evalNum(x, env = {}) {
       const b = evalNum(x.b, env), e = evalNum(x.e, env);
       if (b < 0 && !Number.isInteger(e)) {
         // odd roots of negatives, e.g. (-8)^(1/3)
-        if (x.e.t === 'num' && isQ(x.e.v) && x.e.v.d % 2n === 1n) return -Math.pow(-b, e) * (x.e.v.n % 2n === 0n ? -1 : 1);
+        let en = x.e;
+        if (en.t !== 'num' && !has(en)) { try { en = simplify(en); } catch { /* keep */ } }
+        if (en.t === 'num' && isQ(en.v) && en.v.d % 2n === 1n) return -Math.pow(-b, e) * (en.v.n % 2n === 0n ? -1 : 1);
         return NaN;
       }
       return Math.pow(b, e);

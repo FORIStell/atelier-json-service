@@ -10,7 +10,7 @@ import { derivative, integrate, definiteIntegral, limit } from './calculus.js';
 import { toQArray, deg, toNode, rationalRoots, synthDiv } from './poly.js';
 import { matrixProblem } from './matrix.js';
 import { geometryProblem } from './geometry.js';
-import { advancedProblem, expTrigIntegral } from './advanced.js';
+import { advancedProblem, expTrigIntegral, trigPowerIntegral } from './advanced.js';
 import { fromLithuanian } from './lithuanian.js';
 
 const S = (x) => simplify(x);
@@ -487,7 +487,7 @@ function integralProblem(src, v, a, b, opts, res) {
   }
   const head = `\\int ${rawTex(raw)}\\,d${v}`;
   steps.push({ title: 'Start with the integral', math: head });
-  const F = integrate(node, v, steps) || expTrigIntegral(S(node), v, steps);
+  const F = integrate(node, v, steps) || expTrigIntegral(S(node), v, steps) || trigPowerIntegral(S(node), v, steps);
   if (!F) throw new MathError('I could not find this antiderivative step by step. Try a definite integral (with limits) for a numeric answer.');
   let ans = S(F);
   try { const ex = expand(ans); if (text(ex).length < 1.4 * text(ans).length) ans = ex; } catch { /* keep */ }
@@ -558,6 +558,33 @@ function complexProblem(node, raw, res) {
   return res('complex', 'Complex numbers', rawTex(raw), steps, tex(out), text(out));
 }
 
+// Σ 1/(n(n+1)) from n = a to ∞: split into partial fractions c_i/(n + a_i); the terms cancel (telescope)
+function telescoping(body, v, a0) {
+  const [N, D] = numerDenom(body);
+  const pn = toQArray(polyCoeffs(N, v) || []), pd = toQArray(polyCoeffs(D, v) || []);
+  if (!pn || !pd || pd.length < 3 || pn.length >= pd.length - 1) return null;
+  const { roots, rest } = rationalRoots(pd);
+  if (rest.length !== 1 || roots.length !== pd.length - 1) return null;
+  const shifts = roots.map((r) => r.neg());
+  if (!shifts.every((q) => q.isInt()) || new Set(shifts.map(String)).size !== shifts.length) return null;
+  // cover-up: c_i = N(r_i) / D'(r_i)
+  const evalP = (p, x) => p.reduceRight((acc, c) => acc.mul(x).add(c), Q.of(0));
+  const dpd = pd.slice(1).map((c, i) => c.mul(Q.of(i + 1)));
+  const cs = roots.map((r) => evalP(pn, r).div(evalP(dpd, r)));
+  if (!cs.reduce((x, y) => x.add(y), Q.of(0)).isZero()) return null;
+  const H = (m) => { let h = Q.of(0); for (let j = 1n; j <= m; j++) h = h.add(new Q(1n, j)); return h; };
+  if (shifts.some((q) => a0 + Number(q.n) - 1 < 0)) return null;
+  let val = Q.of(0);
+  cs.forEach((c, i) => { val = val.sub(c.mul(H(BigInt(a0) + shifts[i].n - 1n))); });
+  const pf = cs.map((c, i) => S(div(num(c), add(sym(v), num(shifts[i]))))).map(tex).join(' + ').replace(/\+ -/g, '- ');
+  const steps = [
+    { title: 'Split the term into partial fractions', math: `${tex(body)} = ${pf}` },
+    { title: 'Write out the first terms: almost everything cancels (a telescoping sum)', detail: '\\text{only the first few terms survive as } n \\to \\infty' },
+    { title: 'Add the terms that are left', math: tex(num(val)) },
+  ];
+  return { value: num(val), steps };
+}
+
 function seriesProblem(kind, v, loSrc, hiSrc, bodySrc, opts, res) {
   const body = S(fromRaw(parse(bodySrc)));
   const lo = S(P(loSrc, opts)), hi = S(P(hiSrc, opts));
@@ -597,6 +624,8 @@ function seriesProblem(kind, v, loSrc, hiSrc, bodySrc, opts, res) {
       steps.push({ title: 'Because $|r| < 1$, use $S = \\frac{a}{1 - r}$', math: `\\frac{${tex(t0)}}{1 - ${wrapT(r1)}} = ${tex(val)}` });
       return res('series', 'Infinite series', head, steps, tex(val), text(val));
     }
+    const tele = kind === 'Σ' ? telescoping(body, v, a) : null;
+    if (tele) { tele.steps.forEach((q) => steps.push(q)); return res('series', 'Infinite series', head, steps, tex(tele.value), text(tele.value)); }
     let sum = 0, prev = 0;
     for (let k = a; k < a + 200000; k++) { prev = sum; sum += evalNum(body, { [v]: k }); }
     if (!Number.isFinite(sum) || Math.abs(sum - prev) > 1e-6 * Math.max(1, Math.abs(sum))) { steps.push({ title: 'The terms do not shrink fast enough, so the series diverges' }); return res('series', 'Infinite series', head, steps, '\\text{diverges}', 'Diverges'); }

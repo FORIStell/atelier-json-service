@@ -13,7 +13,7 @@ const COMMANDS = new Set(['frac', 'sqrt', 'pi', 'theta', 'infty', 'leq', 'geq', 
 const PLAIN = new Set("0123456789abcdefghijklmnopqrstuvwxyz+-=()[]{}^_<>|!,./'%");
 const RARE = new Set(['pi', 'alpha', 'beta', 'theta', 'cos', 'sin', 'tan', 'cot', 'sec', 'csc', 'log', 'ln', 'lim', 'prod', 'sum', 'int', 'circ', 'prime',
   'arcsin', 'arccos', 'arctan', 'sinh', 'cosh', 'tanh', 'exp', '_', 'Ġ_', 'pm', '%', 'Ġ%', '!', 'Ġ!', "'", "Ġ'", '°']);
-const PEN = 5, TINY_BONUS = 0.3, BEAM = 5, MAX_LEN = 90, LEN_NORM = 0.6;
+const PEN = 2, TINY_BONUS = 0.3, BEAM = 5, MAX_LEN = 90, LEN_NORM = 0.6;
 const BOS = 1, EOS = 2;
 
 // ---------------------------------------------------------------- GPT-2 style byte-level BPE tokenizer

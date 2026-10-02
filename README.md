@@ -75,14 +75,15 @@ tests/            engine tests (npm test)
 Two readers work together:
 
 1. **Fast reader** (always available, 1.4 MB): our own tiny CNN symbol classifier (691k parameters, 94% per-symbol accuracy, plain JavaScript) plus layout rules for fractions, roots and exponents. It knows 56 symbols and was trained on ~190k images (MNIST, EMNIST, HASYv2, symbols cut out of CROHME, printed fonts).
-2. **Accurate reader** (optional one-time ~43 MB download, then offline): [Pix2Text-MFR 1.5](https://huggingface.co/breezedeus/pix2text-mfr-1.5) (MIT), **fine-tuned by us on ~14k real handwritten formulas** (made to look like phone photos: paper colour, ruled lines, shadows, blur, pencil), shrunk to 8-bit, run with onnxruntime-web. It searches several readings limited to school-math symbols (rare symbols like π, α, cos are penalised), also scores the fast reader's reading, and keeps the best one our math engine can understand.
+2. **Accurate reader** (optional one-time ~43 MB download, then offline): [Pix2Text-MFR 1.5](https://huggingface.co/breezedeus/pix2text-mfr-1.5) (MIT), **fine-tuned by us on ~14k real handwritten formulas** (made to look like phone photos: paper colour, ruled lines, shadows, blur, pencil), shrunk to 8-bit, run with onnxruntime-web. It searches several readings limited to school-math symbols (rare symbols like π, α, cos get a small penalty), also scores the fast reader's reading, and keeps the best one our math engine can understand.
 
 Measured on real handwritten school-level problems that were never used for training ("exactly right" = the whole problem read correctly):
 
 | Test set | Fast reader | Before fine-tuning | **Now** | Right answer in the top 3 ("Did you mean…?") |
 |---|---|---|---|---|
-| CROHME 2019, 200 problems (handwriting drawn on tablets) | 42% | 70% | **90.5%** | 96.5% |
-| CROHME 2023, 196 problems (handwriting scanned on lined paper, rows never trained on) | 25% | 57% | **75%** | 85% |
+| CROHME 2019, 200 problems (handwriting drawn on tablets) | 42% | 70% | **91.5%** | 96.5% |
+| CROHME 2023, 196 problems (handwriting scanned on lined paper, rows never trained on) | 25% | 57% | **76%** | 85% |
+| CROHME 2019, 200 university-level formulas (∫, Σ, lim, trig, logs, Greek letters) | 18% | – | **69%** | 82% |
 | Printed problems (synthetic photos) | 100% | – | – | – |
 
 Some test formulas also appear in the training data (written by other people). On only the formulas it never saw, the reader gets 94% (tablet) and 69% (paper), up from 76% and 49%.
@@ -102,7 +103,7 @@ WIDE=1 DATASET=symbols.npz python train.py 18   # writes web/model/symbols.{json
 python make_eval.py $MATH_DATA/eval && node eval_ocr.mjs $MATH_DATA/eval
 # combined reader evaluation (needs onnxruntime, tokenizers and the Pix2Text-MFR files in $MFR)
 python make_school_eval23.py $MATH_DATA/paper 200 3000 && node dump_tiny.mjs $MATH_DATA/paper $MATH_DATA/paper/tiny.json
-python hybrid_eval.py $MATH_DATA/paper $MFR $MATH_DATA/paper/tiny.json cands.json --pen=5 --bonus=0.3 --aspect=4
+python hybrid_eval.py $MATH_DATA/paper $MFR $MATH_DATA/paper/tiny.json cands.json --pen=2 --bonus=0.3 --aspect=4
 node pick_valid.mjs cands.json best.json && node eval_compare.mjs $MATH_DATA/paper best.json
 # fine-tune the accurate reader (CPU, ~3 h): rebuild PyTorch weights, precompute augmented features, train, export
 python onnx_to_hf.py $MFR $MATH_DATA/mfr_pt

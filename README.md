@@ -35,6 +35,7 @@ Works on **iPhone, Android and PC**, installs like an app, and works **offline**
 * **Write** – write a problem with your finger.
 * **Word problem** – type or paste a word problem in Lithuanian or English (menu, or the Aa button; on a PC just paste text). It finds the numbers with their units, recognises the kind of problem (percentages, interest, mixtures, speed/distance/time, work, progressions, probability, counting, statistics, shapes, ratios, ...) and shows the steps.
 * **Lietuvių kalba** – menu → Language switches the whole app, including every solution step, to Lithuanian (chosen automatically on Lithuanian phones and PCs).
+* **Practice** – the target button (or menu → Practice): problems by topic (equations, systems, roots, logarithms, derivatives, integrals, limits, percentages, progressions, probability). Type your answer and it is checked (any order, decimal comma, an antiderivative with any constant); the score and streak are kept per topic. After any solution, **Try a similar problem** makes the same problem with new numbers.
 * **Menu** – history, degrees/radians, tips.
 
 Each answer comes with explanations of the rule used at every step (e.g. "Subtract 2x from both sides", "Quadratic formula", "Chain rule"), a check of the answer, and a graph when it helps.

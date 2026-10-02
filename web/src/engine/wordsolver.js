@@ -50,9 +50,9 @@ const allOf = (qs, unit) => qs.filter((q) => q.unit === unit);
 const out = (title, steps, answers) => ({ title, steps, answers });
 // the number written right after (or before) a keyword: "ilgis 12 cm", "spindulys yra 5", "12 cm ilgio"
 function after(f, stem) {
-  const re = new RegExp(`${stem}\\S*\\s+(?:yra\\s+|lygus\\s+|lygi\\s+|is\\s+|of\\s+|=\\s*)?(\\d+(?:\\.\\d+)?)`);
+  const re = new RegExp(`${stem}\\S*\\s+(?:yra\\s+|lygus\\s+|lygi\\s+|is\\s+|of\\s+|=\\s*)?([-−]?\\s?\\d+(?:\\.\\d+)?)`);
   const m = f.match(re);
-  if (m) return Number(m[1]);
+  if (m) return Number(m[1].replace(/[−\\s]/g, (c) => (c === '−' ? '-' : '')));
   const re2 = new RegExp(`(\\d+(?:\\.\\d+)?)\\s*(?:mm|cm|dm|m|km)?\\s+${stem}`);
   const m2 = f.match(re2);
   return m2 ? Number(m2[1]) : null;

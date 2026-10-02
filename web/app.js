@@ -7,6 +7,7 @@ import { SymbolModel } from './src/ocr/model.js';
 import { grayFromImage, binarize } from './src/ocr/preprocess.js';
 import { recognizeMask } from './src/ocr/recognize.js';
 import { cleanOcrText, textScore } from './src/ocr/text.js';
+import { TOPICS, generate, similar, check } from './src/practice.js';
 import { lang, setLang, trStep, trKind, trAnswer, trError, applyUI, ui } from './src/i18n.js';
 
 const $ = (id) => document.getElementById(id);
@@ -29,7 +30,7 @@ let degrees = store.get('degrees', false);
 function syncAngle() { $('angleLabel').textContent = ui(degrees ? 'Degrees' : 'Radians'); document.querySelectorAll('[data-angle]').forEach((b) => { b.textContent = degrees ? 'deg' : 'rad'; }); }
 
 // ================================================================ sheets
-const SHEETS = ['calc', 'result', 'write', 'history', 'words'];
+const SHEETS = ['calc', 'result', 'write', 'history', 'words', 'practice'];
 // PC: the picture / screen area is on the left and the calculator or solution stays open on the right
 const deskQuery = matchMedia('(min-width: 900px) and (pointer: fine)');
 let isDesk = deskQuery.matches;
@@ -45,7 +46,7 @@ function openSheet(id) {
 }
 document.querySelectorAll('[data-close]').forEach((b) => b.addEventListener('click', () => {
   const sheet = b.closest('.sheet').id;
-  openSheet(sheet === 'result' && (cameFrom === 'calc' || cameFrom === 'words') ? cameFrom : null);
+  openSheet(sheet === 'result' && ['calc', 'words', 'practice'].includes(cameFrom) ? cameFrom : null);
 }));
 
 // ================================================================ menu & help
@@ -53,10 +54,11 @@ $('menuBtn').addEventListener('click', () => { $('menu').hidden = false; });
 document.querySelectorAll('[data-menu]').forEach((b) => b.addEventListener('click', () => {
   const m = b.dataset.menu;
   if (m === 'angle') { degrees = !degrees; store.set('degrees', degrees); syncAngle(); toast(`Angles in ${degrees ? 'degrees' : 'radians'}`); return; }
-  if (m === 'lang') { setLang(lang === 'lt' ? 'en' : 'lt'); syncLang(); if (current && current.r && !$('result').hidden) renderResult(current.r, current.source); return; }
+  if (m === 'lang') { setLang(lang === 'lt' ? 'en' : 'lt'); syncLang(); if (current && current.r && !$('result').hidden) renderResult(current.r, current.source); if (!$('practice').hidden) { renderTopics(); if (prCur) showPractice(prCur); } return; }
   if (m === 'accurate') { const v = !store.get('accurate', null); store.set('accurate', v); syncAccurate(); toast(v ? 'Accurate reader on (downloads once when you next read a photo)' : 'Using the fast reader'); return; }
   $('menu').hidden = true;
   if (m === 'help') $('help').hidden = false;
+  else if (m === 'practice') openPractice();
   else if (m !== 'close') openSheet(m);
 }));
 $('helpBtn').addEventListener('click', () => { $('help').hidden = false; });
@@ -493,7 +495,7 @@ function distinctReadings(latexList) {
   return res;
 }
 function syncAccurate() { const el = $('accurateLabel'); if (el) el.textContent = ui(store.get('accurate', null) ? 'On' : 'Off'); }
-function syncLang() { applyUI(); syncMode(); $('langLabel').textContent = lang === 'lt' ? 'Lietuvių' : 'English'; syncAngle(); syncAccurate(); }
+function syncLang() { applyUI(); syncMode(); $('prAnswer').placeholder = ui('Your answer, e.g. x = 2, x = 3'); $('langLabel').textContent = lang === 'lt' ? 'Lietuvių' : 'English'; syncAngle(); syncAccurate(); }
 
 function useRecognized(lines, source) {
   if (!lines.length) { toast('I could not find any math. Try again closer, with more light.'); return; }
@@ -550,8 +552,8 @@ function renderResult(r, source) {
   for (const s of r.steps) {
     const li = document.createElement('li');
     let h = `<div class="step-title">${richHTML(trStep(s.title))}</div>`;
-    if (s.detail) h += `<div class="step-detail">${texHTML(s.detail, true)}</div>`;
-    if (s.math) h += `<div class="step-math">${texHTML(s.math, true)}</div>`;
+    if (s.detail) h += `<div class="step-detail">${texHTML(trAnswer(s.detail), true)}</div>`;
+    if (s.math) h += `<div class="step-math">${texHTML(trAnswer(s.math), true)}</div>`;
     li.innerHTML = h;
     ol.appendChild(li);
   }
@@ -637,6 +639,69 @@ $('wordsSolve').addEventListener('click', () => solveWords($('wordsText').value)
 $('wordsClear').addEventListener('click', () => { $('wordsText').value = ''; $('wordsError').hidden = true; $('wordsText').focus(); });
 $('wordsText').addEventListener('keydown', (e) => { if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) { e.preventDefault(); solveWords($('wordsText').value); } });
 $('openWords').addEventListener('click', () => openSheet('words'));
+$('openPractice').addEventListener('click', () => openPractice());
+// ---- practice: problems by topic (or like the one just solved), the answer is checked
+let prTopic = store.get('prTopic', 'linear'), prCur = null, prStreak = 0;
+const prStats = store.get('prStats', {});
+const topicName = (id) => { const t = TOPICS.find((x) => x.id === id); return t ? (lang === 'lt' ? t.lt : t.en) : ui('Similar problem'); };
+function renderTopics() {
+  const box = $('prTopics');
+  box.innerHTML = '';
+  for (const t of TOPICS) {
+    const b = document.createElement('button'), st = prStats[t.id];
+    b.className = prCur && prCur.topic === t.id ? 'on' : '';
+    b.innerHTML = escapeHtml(lang === 'lt' ? t.lt : t.en) + (st ? `<small>${st.ok}/${st.n}</small>` : '');
+    b.addEventListener('click', () => { prTopic = t.id; store.set('prTopic', prTopic); newPractice(); });
+    box.appendChild(b);
+  }
+}
+function renderScore() {
+  const st = prStats[prCur?.topic || 'similar'];
+  $('prScore').textContent = st ? `${ui('Correct')} ${st.ok}/${st.n}${prStreak > 1 ? ` · ${ui('Streak')} ${prStreak} 🔥` : ''}` : '';
+}
+function showPractice(p) {
+  prCur = p;
+  $('prKind').textContent = topicName(p.topic);
+  const el = $('prProblem');
+  if (p.result.kind === 'word') { el.textContent = p.text.replace(/(\d) (?=[%€])/g, '$1\u00a0'); el.classList.add('as-text'); } else { el.classList.remove('as-text'); el.innerHTML = texHTML(p.result.inputTex, true); }
+  $('prAnswer').value = ''; $('prFeedback').hidden = true; prCur.tries = 0;
+  renderTopics(); renderScore();
+}
+function newPractice() { try { showPractice(generate(prTopic)); } catch (e) { toast(e.message); } }
+function openPractice(p) {
+  openSheet('practice');
+  if (p) showPractice(p); else if (!prCur || !prCur.topic) newPractice(); else renderTopics();
+  if (!matchMedia('(pointer: coarse)').matches) setTimeout(() => $('prAnswer').focus(), 60);
+}
+function practiceCheck() {
+  const v = $('prAnswer').value.trim();
+  if (!v) { toast('Write the answer first'); return; }
+  const res = check(v, prCur), key = prCur.topic || 'similar', st = prStats[key] || (prStats[key] = { ok: 0, n: 0 });
+  if (!prCur.tries++) { st.n++; if (res.ok) st.ok++; store.set('prStats', prStats); } // the first try counts
+  prStreak = res.ok ? prStreak + 1 : 0;
+  const fb = $('prFeedback');
+  fb.hidden = false; fb.className = 'pr-feedback ' + (res.ok ? 'ok' : 'bad');
+  fb.textContent = ui(res.ok ? 'Correct! ✓' : 'Not quite. Try again or look at the solution.');
+  renderTopics(); renderScore();
+}
+$('prCheck').addEventListener('click', practiceCheck);
+$('prAnswer').addEventListener('keydown', (e) => { if (e.key === 'Enter') { e.preventDefault(); practiceCheck(); } });
+$('prNext').addEventListener('click', () => { if (prCur && !prCur.topic) { const s = similar(prCur.text); if (s) { showPractice(s); return; } } newPractice(); });
+$('prShow').addEventListener('click', () => {
+  if (!prCur) return;
+  if (!prCur.tries) { prCur.tries = 1; const key = prCur.topic || 'similar', st = prStats[key] || (prStats[key] = { ok: 0, n: 0 }); st.n++; store.set('prStats', prStats); prStreak = 0; }
+  current = { text: prCur.text, latex: null, source: 'practice', alts: [], r: prCur.result };
+  cameFrom = 'practice';
+  renderResult(prCur.result, 'practice');
+  openSheet('result');
+});
+$('similarBtn').addEventListener('click', () => {
+  if (!current) return;
+  const s = similar(current.text);
+  if (!s) { toast('No similar problem for this one'); return; }
+  openPractice(s);
+});
+
 function openCalcWith(text, latex) {
   openSheet('calc');
   const set = () => { if (!mf) return setTimeout(set, 60); mf.setValue(latex || safeTex(text)); livePreview(); };

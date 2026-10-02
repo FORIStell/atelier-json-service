@@ -103,6 +103,9 @@
         <button class="tool-btn" id="openWords" aria-label="Type a word problem">
           <svg viewBox="0 0 24 24"><path d="M4 18L9 6l5 12M5.7 14h6.6"/><path d="M15 12.5c.6-1 1.6-1.5 2.7-1.5 1.6 0 2.3 1 2.3 2.4V18"/><path d="M20 15.2c-1-.6-5-.9-5 1.3 0 1.9 3.7 2 5 0"/></svg>
         </button>
+        <button class="tool-btn" id="openPractice" aria-label="Practice">
+          <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="8.5"/><circle cx="12" cy="12" r="4.5"/><circle cx="12" cy="12" r="1" fill="currentColor"/></svg>
+        </button>
         <button class="tool-btn" id="shareBtn2" aria-label="Share screen" hidden>
           <svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="12" rx="2"/><path d="M8 20h8M12 16v4"/></svg>
         </button>
@@ -165,6 +168,7 @@
         <div class="answer" id="resultAnswer"></div>
         <button id="copyBtn" class="chip-btn">Copy</button>
       </div>
+      <button id="similarBtn" class="btn similar-btn">Try a similar problem</button>
       <h2 class="sec-title">How to solve it</h2>
       <ol id="steps" class="steps"></ol>
       <div id="graphCard" class="graph-card" hidden>
@@ -203,6 +207,28 @@
     </div>
   </section>
 
+  <!-- ============ PRACTICE SHEET ============ -->
+  <section id="practice" class="sheet" hidden>
+    <header class="sheet-head">
+      <span></span><h1>Practice</h1><button class="link" data-close>Close</button>
+    </header>
+    <div class="pr-topics" id="prTopics"></div>
+    <div class="pr-body">
+      <div class="problem-card">
+        <div class="result-kind" id="prKind"></div>
+        <div class="problem" id="prProblem"></div>
+      </div>
+      <input id="prAnswer" class="pr-input" autocomplete="off" autocapitalize="off" spellcheck="false" enterkeyhint="done">
+      <div id="prFeedback" class="pr-feedback" hidden></div>
+      <div class="pr-actions">
+        <button id="prShow" class="btn">Show solution</button>
+        <button id="prCheck" class="btn primary">Check</button>
+      </div>
+      <button id="prNext" class="btn pr-next">Next problem</button>
+      <p class="pr-score" id="prScore"></p>
+    </div>
+  </section>
+
   <!-- ============ HISTORY SHEET ============ -->
   <section id="history" class="sheet" hidden>
     <header class="sheet-head">
@@ -218,6 +244,7 @@
       <button data-menu="calc">Calculator</button>
       <button data-menu="write">Write by hand</button>
       <button data-menu="words">Word problem</button>
+      <button data-menu="practice">Practice</button>
       <button data-menu="history">History</button>
       <button data-menu="angle">Angles: <b id="angleLabel">Radians</b></button>
       <button data-menu="accurate">Accurate reader: <b id="accurateLabel">Off</b></button>

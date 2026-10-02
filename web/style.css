@@ -104,6 +104,22 @@ math-field::part(virtual-keyboard-toggle), math-field::part(menu-toggle) { displ
 .live-preview { margin-top: 14px; color: var(--muted); font-size: 1.1rem; min-height: 1.5em; overflow-x: auto; }
 .live-preview .go { color: var(--accent); font-weight: 600; }
 .calc-error { margin-top: 12px; color: var(--accent); font-weight: 500; }
+.pr-topics { display: flex; gap: 8px; overflow-x: auto; padding: 0 16px 10px; scrollbar-width: none; }
+.pr-topics::-webkit-scrollbar { display: none; }
+.pr-topics button { flex: none; border: 1.5px solid var(--line); border-radius: 999px; padding: 7px 13px; font-weight: 600; font-size: .88rem; color: var(--text); white-space: nowrap; }
+.pr-topics button.on { background: var(--accent); border-color: var(--accent); color: #fff; }
+.pr-topics small { opacity: .7; font-weight: 500; margin-left: 4px; }
+.pr-body { padding: 0 16px calc(var(--safe-b) + 16px); overflow-y: auto; }
+.pr-body .problem.as-text { font-size: 1.05rem; line-height: 1.5; }
+.pr-input { width: 100%; margin-top: 12px; height: 52px; border: 1.5px solid var(--line); border-radius: 14px; padding: 0 14px; font: 1.1rem inherit; color: var(--text); background: var(--panel); }
+.pr-input:focus { outline: none; border-color: var(--accent); }
+.pr-feedback { margin-top: 10px; padding: 10px 14px; border-radius: 12px; font-weight: 600; }
+.pr-feedback.ok { background: color-mix(in srgb, var(--good) 16%, transparent); color: var(--good); }
+.pr-feedback.bad { background: color-mix(in srgb, var(--accent) 12%, transparent); color: var(--accent); }
+.pr-actions { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 12px; }
+.pr-next { width: 100%; margin-top: 10px; }
+.pr-score { margin: 14px 0 0; text-align: center; color: var(--muted); font-weight: 600; }
+.similar-btn { width: 100%; margin-top: 12px; }
 
 .kbd { background: var(--panel); border-top-left-radius: 16px; border-top-right-radius: 16px; padding: 6px 0 calc(var(--safe-b) + 6px); user-select: none; -webkit-user-select: none; touch-action: manipulation; }
 .kbd-tools { display: grid; grid-template-columns: repeat(6, 1fr); align-items: center; padding: 4px 6px; }
